@@ -1,9 +1,9 @@
 import streamlit as st
 import pandas as pd
 
-st.set_page_config(page_title="Biomarker Sample Lookup", layout="centered")
+st.set_page_config(page_title="Biomarker Sample Barcode Lookup Web App", layout="centered")
 
-st.title("🔬 Biomarker Sample Lookup System (Secure & Online)")
+st.title("🔬 Biomarker Sample Barcode Lookup Web App")
 st.write("Upload your Excel file locally, and scan or enter a barcode.")
 
 # Upload Excel
@@ -34,3 +34,4 @@ if uploaded_file:
         st.error(f"❌ Error reading file: {e}")
 else:
     st.info("⬆️ Please upload an Excel file to begin.")
+
