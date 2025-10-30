@@ -18,15 +18,6 @@ barcode_input_placeholder = st.empty()
 
 uploaded_file = st.file_uploader("📁 Upload your sample Excel file", type=["xlsx"])
 
-# Function to highlight rows
-def highlight_matched_rows(df, match_cols=["Screen ID", "Visit", "Sample Name"]):
-    # Create a style for rows that match the 'Screen ID', 'Visit', and 'Sample Name'
-    def highlight(row):
-        color = 'background-color: yellow'  # Highlight color for matches
-        return [color if row[col] in df[col].values else '' for col in match_cols]
-    
-    return df.style.apply(highlight, axis=1)
-
 if uploaded_file:
     try:
         # Load the file if it's not already loaded
@@ -56,9 +47,9 @@ if uploaded_file:
                 st.session_state.df = df
                 st.info(f"🗸 Scan status updated for barcode: {barcode_input}")
 
-            # Show current match with highlighted rows
+            # Show current match
             st.subheader("🔹 Current Match(es)")
-            st.dataframe(highlight_matched_rows(current_match))
+            st.dataframe(current_match)
 
         # --- Clear the barcode input UI after processing ---
         st.session_state.barcode_input = ""  # Reset the barcode input value in session state
@@ -67,9 +58,9 @@ if uploaded_file:
         # Re-render barcode input placeholder with an empty value
         barcode_input_placeholder.text_input("🧪 Scan or type barcode:", value="", key="barcode_input")
 
-        # --- Full table with highlighted matches ---
+        # --- Full table ---
         st.subheader("📋 Full Table")
-        st.dataframe(highlight_matched_rows(st.session_state.df))
+        st.dataframe(st.session_state.df)
 
         # --- Download updated Excel ---
         if st.session_state.df is not None:
@@ -80,7 +71,7 @@ if uploaded_file:
             ws = wb.active
 
             # Add Scan_Status column if missing
-            if "Scan_Status" not in [cell.value for cell in ws[1]]:  # Ensure Scan_Status column exists
+            if "Scan_Status" not in [cell.value for cell in ws[1]]:
                 ws.cell(row=1, column=ws.max_column + 1, value="Scan_Status")
 
             # Map headers
