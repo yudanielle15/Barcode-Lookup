@@ -16,20 +16,27 @@ uploaded_file = st.file_uploader("📁 Upload your sample Excel file", type=["xl
 
 if uploaded_file:
     try:
-        # Only read file if first time uploading
+        # Only read Excel if not already loaded
         if st.session_state.df is None:
-            df = pd.read_excel(uploaded_file)
+            try:
+                df = pd.read_excel(uploaded_file)
+            except Exception as e:
+                st.error(f"❌ Error reading Excel: {e}")
+                df = pd.DataFrame()  # fallback empty DF
 
             if "Scan_Status" not in df.columns:
                 df["Scan_Status"] = ""
 
             st.session_state.df = df
 
+        # Always use session state DataFrame
+        df = st.session_state.df
+
         st.success("✅ File loaded. Ready to scan.")
 
         # Optional preview
         with st.expander("🔍 Preview File Contents"):
-            st.dataframe(st.session_state.df)
+            st.dataframe(df)
 
         # Function to clear barcode input
         def clear_input():
@@ -44,7 +51,6 @@ if uploaded_file:
 
         # Process barcode if entered
         if barcode_input:
-            df = st.session_state.df
             current_match = df[df['Barcode'].astype(str) == str(barcode_input)]
 
             if current_match.empty:
@@ -76,7 +82,7 @@ if uploaded_file:
                 st.dataframe(df.style.apply(highlight_match, axis=1))
 
         # Download button preserving original formatting
-        if st.session_state.df is not None:
+        if df is not None and not df.empty:
             original_filename = uploaded_file.name
             new_filename = original_filename.replace(".xlsx", "_Scanned.xlsx")
 
