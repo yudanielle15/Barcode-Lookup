@@ -30,7 +30,7 @@ if uploaded_file:
         st.dataframe(st.session_state.df)
 
         # --- Barcode input ---
-        barcode_input = barcode_input_placeholder.text_input("🧪 Scan or type barcode:")
+        barcode_input = barcode_input_placeholder.text_input("🧪 Scan or type barcode:", key="barcode_input_field")
 
         if barcode_input:
             df = st.session_state.df
@@ -118,7 +118,7 @@ if uploaded_file:
             barcode_input_placeholder.empty()  # Immediately clear the input field
 
         # --- Re-render barcode input placeholder with an empty value ---
-        barcode_input_placeholder.text_input("🧪 Scan or type barcode:", value="")
+        barcode_input_placeholder.text_input("🧪 Scan or type barcode:", value="", key="barcode_input_field_2")
 
     except Exception as e:
         st.error(f"❌ Error reading file: {e}")
