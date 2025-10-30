@@ -47,13 +47,24 @@ if uploaded_file:
                 st.session_state.df = df
                 st.info(f"🗸 Scan status updated for barcode: {barcode_input}")
 
-                # --- Highlight and Show current match (with highlighted columns) ---
+                # --- Highlight and Show current match (highlight columns in yellow) ---
                 st.subheader("🔹 Current Match(es)")
 
-                # Highlight relevant columns (Screen ID, Visit, Sample Name)
-                st.dataframe(
-                    current_match[['Screen ID', 'Visit', 'Sample Name', 'Barcode', 'Scan_Status']]
-                )
+                # Highlighting the "Screen ID", "Visit", "Sample Name" columns in yellow
+                def highlight_columns(val):
+                    color = 'background-color: yellow'  # yellow background for highlight
+                    styles = [''] * len(val)
+                    if val.name in ['Screen ID', 'Visit', 'Sample Name']:
+                        styles[val.name == 'Screen ID'] = color
+                        styles[val.name == 'Visit'] = color
+                        styles[val.name == 'Sample Name'] = color
+                    return styles
+
+                # Applying the highlight function to the dataframe
+                styled_match = current_match.style.apply(highlight_columns, axis=1)
+
+                # Display the styled dataframe
+                st.dataframe(styled_match)
 
                 # --- Full table ---
                 st.subheader("📋 Full Table")
