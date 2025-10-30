@@ -10,14 +10,15 @@ st.write("Upload your Excel file locally, and scan or enter a barcode.")
 # Initialize session state
 if "df" not in st.session_state:
     st.session_state.df = None
-if "barcode_input" not in st.session_state:
-    st.session_state.barcode_input = ""
 
 uploaded_file = st.file_uploader("📁 Upload your sample Excel file", type=["xlsx"])
 
+# To store barcode input
+barcode_input_placeholder = st.empty()  # This is the dynamic container for the input field
+
 if uploaded_file:
     try:
-        # Load file only once
+        # Load the file if it's not already loaded
         if st.session_state.df is None:
             df = pd.read_excel(uploaded_file)
             if "Scan_Status" not in df.columns:
@@ -30,13 +31,8 @@ if uploaded_file:
             st.dataframe(st.session_state.df)
 
         # --- Barcode input ---
-        barcode_input = st.text_input(
-            "🧪 Scan or type barcode:",
-            value=st.session_state.barcode_input,
-            key="barcode_input",
-        )
+        barcode_input = barcode_input_placeholder.text_input("🧪 Scan or type barcode:")
 
-        # Only process if there's input
         if barcode_input:
             df = st.session_state.df
             current_match = df[df['Barcode'].astype(str) == str(barcode_input)]
@@ -63,9 +59,9 @@ if uploaded_file:
                 st.subheader("🔹 Current Match(es)")
                 st.dataframe(current_match.style.apply(highlight_match, axis=1))
 
-            # Always clear the input field (UI only)
-            st.session_state.barcode_input = ""
-            st.rerun()  # refresh to clear the input box
+            # --- Clear the input field (UI only) ---
+            barcode_input_placeholder.empty()  # Clear the UI field by emptying its placeholder
+            barcode_input_placeholder.text_input("🧪 Scan or type barcode:", key="barcode_input")  # Reset input field
 
         # --- Display full table ---
         if st.session_state.df is not None:
