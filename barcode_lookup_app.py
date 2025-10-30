@@ -23,26 +23,31 @@ if uploaded_file:
                 df["Scan_Status"] = ""
             st.session_state.df = df
 
+        df = st.session_state.df  # always use session state
+
         st.success("✅ File loaded. Ready to scan.")
 
         # Optional preview
         with st.expander("🔍 Preview File Contents"):
-            st.dataframe(st.session_state.df)
+            st.dataframe(df)
 
         # --- Barcode input using session_state ---
         if "barcode_input" not in st.session_state:
             st.session_state.barcode_input = ""
 
+        # Text input linked to session state
         barcode_input = st.text_input(
             "🧪 Scan or type barcode:",
             value=st.session_state.barcode_input,
             key="barcode_input"
         )
 
-        # Process barcode if entered
+        # Only process if barcode is non-empty
         if barcode_input.strip() != "":
-            df = st.session_state.df
-            current_match = df[df['Barcode'].astype(str) == str(barcode_input)]
+            # Capture current input before clearing
+            current_barcode = barcode_input.strip()
+
+            current_match = df[df['Barcode'].astype(str) == current_barcode]
 
             if current_match.empty:
                 st.error("❌ No match found.")
@@ -50,16 +55,16 @@ if uploaded_file:
                 st.success("✅ Sample found:")
 
                 # Update Scan_Status
-                df.loc[df['Barcode'].astype(str) == str(barcode_input), 'Scan_Status'] = "Matched"
+                df.loc[df['Barcode'].astype(str) == current_barcode, 'Scan_Status'] = "Matched"
                 st.session_state.df = df
 
-                st.info(f"🗸 Scan status updated for barcode: {barcode_input}")
+                st.info(f"🗸 Scan status updated for barcode: {current_barcode}")
 
                 # Columns to highlight
                 highlight_cols = ["Screen ID", "Visit", "Sample Name"]
 
                 def highlight_match(row):
-                    if str(row['Barcode']) == str(barcode_input):
+                    if str(row['Barcode']) == current_barcode:
                         return ['background-color: yellow' if col in highlight_cols else '' for col in row.index]
                     else:
                         return ['' for _ in row.index]
@@ -72,17 +77,16 @@ if uploaded_file:
                 st.subheader("📋 Full Table")
                 st.dataframe(df.style.apply(highlight_match, axis=1))
 
-            # --- CLEAR input immediately in session state ---
-            st.session_state.barcode_input = ""  # This clears the text_input in the UI
+            # --- CLEAR the input AFTER processing ---
+            st.session_state.barcode_input = ""
 
         # Download button preserving original formatting
-        if st.session_state.df is not None:
-            df = st.session_state.df
+        if df is not None and not df.empty:
             original_filename = uploaded_file.name
             new_filename = original_filename.replace(".xlsx", "_Scanned.xlsx")
 
             # Load original workbook
-            uploaded_file.seek(0)  # reset file pointer
+            uploaded_file.seek(0)
             wb = load_workbook(uploaded_file)
             ws = wb.active
 
@@ -94,7 +98,7 @@ if uploaded_file:
             header = {cell.value: idx + 1 for idx, cell in enumerate(ws[1])}
 
             # Update Scan_Status values
-            for i, val in enumerate(df['Scan_Status'], start=2):  # Excel rows start at 2
+            for i, val in enumerate(df['Scan_Status'], start=2):
                 ws.cell(row=i, column=header["Scan_Status"], value=val)
 
             # Save workbook to BytesIO
