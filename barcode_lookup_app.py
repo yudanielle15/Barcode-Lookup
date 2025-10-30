@@ -35,18 +35,15 @@ if uploaded_file:
         if "barcode_input" not in st.session_state:
             st.session_state.barcode_input = ""
 
-        # Text input linked to session state
+        # Text input linked to session_state (do NOT use 'value=')
         barcode_input = st.text_input(
             "🧪 Scan or type barcode:",
-            value=st.session_state.barcode_input,
             key="barcode_input"
         )
 
-        # Only process if barcode is non-empty
+        # Process barcode if not empty
         if barcode_input.strip() != "":
-            # Capture current input before clearing
             current_barcode = barcode_input.strip()
-
             current_match = df[df['Barcode'].astype(str) == current_barcode]
 
             if current_match.empty:
@@ -77,7 +74,7 @@ if uploaded_file:
                 st.subheader("📋 Full Table")
                 st.dataframe(df.style.apply(highlight_match, axis=1))
 
-            # --- CLEAR the input AFTER processing ---
+            # --- CLEAR the input field safely ---
             st.session_state.barcode_input = ""
 
         # Download button preserving original formatting
