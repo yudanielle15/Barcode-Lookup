@@ -18,12 +18,16 @@ barcode_input_placeholder = st.empty()  # This is the dynamic container for the 
 
 highlight_cols = ["Screen ID", "Visit", "Sample Name"]
 
-def highlight_match(val, col):
+def highlight_match(row):
     """Return highlight style if barcode matches"""
-    if col in highlight_cols and str(val) == str(st.session_state.barcode_input):
-        return 'background-color: yellow'
-    return ''
-
+    styles = []
+    for col in row.index:
+        # If the value in the column matches the barcode input and it's one of the columns to highlight
+        if str(row['Barcode']) == str(st.session_state.barcode_input) and col in highlight_cols:
+            styles.append('background-color: yellow')  # Apply yellow background to matching rows
+        else:
+            styles.append('')
+    return styles
 
 uploaded_file = st.file_uploader("📁 Upload your sample Excel file", type=["xlsx"])
 
@@ -59,14 +63,14 @@ if uploaded_file:
 
                 # Show current match with yellow highlights
                 st.subheader("🔹 Current Match(es)")
-                st.dataframe(current_match.style.applymap(lambda val, col: highlight_match(val, col), subset=highlight_cols))
+                st.dataframe(current_match.style.apply(highlight_match, axis=1))  # Apply highlight to current match
 
             # --- Do not reset the input field immediately --- 
             st.session_state.barcode_input = barcode_input  # Keep the barcode input for user feedback
 
         # --- Full table with highlights ---
         st.subheader("📋 Full Table")
-        st.dataframe(st.session_state.df.style.applymap(lambda val, col: highlight_match(val, col), subset=highlight_cols))
+        st.dataframe(st.session_state.df.style.apply(highlight_match, axis=1))  # Apply highlight to the full table
 
         # --- Download updated Excel ---
         if st.session_state.df is not None:
