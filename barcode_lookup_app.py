@@ -10,6 +10,8 @@ st.write("Upload your Excel file locally, and scan or enter a barcode.")
 # Initialize session state
 if "df" not in st.session_state:
     st.session_state.df = None
+if "barcode_input" not in st.session_state:
+    st.session_state.barcode_input = ""
 
 # To track barcode input in session state
 barcode_input_placeholder = st.empty()
@@ -30,7 +32,7 @@ if uploaded_file:
         st.dataframe(st.session_state.df)
 
         # --- Barcode input ---
-        barcode_input = barcode_input_placeholder.text_input("🧪 Scan or type barcode:", key="barcode_input_field")
+        barcode_input = barcode_input_placeholder.text_input("🧪 Scan or type barcode:", value=st.session_state.barcode_input)
 
         if barcode_input:
             df = st.session_state.df
@@ -114,11 +116,12 @@ if uploaded_file:
                         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                     )
 
-            # --- Clear the barcode input UI after processing ---
-            barcode_input_placeholder.empty()  # Immediately clear the input field
+        # --- Clear the barcode input UI after processing ---
+        st.session_state.barcode_input = ""  # Reset the barcode input value in session state
+        barcode_input_placeholder.empty()  # Clear the input UI field
 
-        # --- Re-render barcode input placeholder with an empty value ---
-        barcode_input_placeholder.text_input("🧪 Scan or type barcode:", value="", key="barcode_input_field_2")
+        # Re-render barcode input placeholder with an empty value
+        barcode_input_placeholder.text_input("🧪 Scan or type barcode:", value="", key="barcode_input")
 
     except Exception as e:
         st.error(f"❌ Error reading file: {e}")
