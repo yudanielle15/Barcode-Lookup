@@ -57,9 +57,9 @@ if uploaded_file:
                 st.session_state.df = df
                 st.info(f"🗸 Scan status updated for barcode: {barcode_input}")
 
-                # Show current match
+                # Show current match with yellow highlights
                 st.subheader("🔹 Current Match(es)")
-                st.dataframe(current_match.style.apply(highlight_match, axis=1))
+                st.dataframe(current_match.style.apply(highlight_match, axis=1))  # Apply highlight to current match
 
             # --- Clear the input field (UI only) ---
             st.session_state.barcode_input = ""  # Reset input value in session state
