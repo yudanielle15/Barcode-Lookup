@@ -16,14 +16,14 @@ if "barcode_input" not in st.session_state:
 # Barcode input placeholder to reset input UI
 barcode_input_placeholder = st.empty()  # This is the dynamic container for the input field
 
-# Define the highlight_match function outside of the conditional blocks
 highlight_cols = ["Screen ID", "Visit", "Sample Name"]
 
-def highlight_match(row):
-    if str(row['Barcode']) == str(st.session_state.barcode_input):
-        return ['background-color: yellow' if col in highlight_cols else '' for col in row.index]
-    else:
-        return ['' for _ in row.index]
+def highlight_match(val, col):
+    """Return highlight style if barcode matches"""
+    if col in highlight_cols and str(val) == str(st.session_state.barcode_input):
+        return 'background-color: yellow'
+    return ''
+
 
 uploaded_file = st.file_uploader("📁 Upload your sample Excel file", type=["xlsx"])
 
@@ -59,16 +59,14 @@ if uploaded_file:
 
                 # Show current match with yellow highlights
                 st.subheader("🔹 Current Match(es)")
-                st.dataframe(current_match.style.apply(highlight_match, axis=1))  # Apply highlight to current match
+                st.dataframe(current_match.style.applymap(lambda val, col: highlight_match(val, col), subset=highlight_cols))
 
-            # --- Clear the input field (UI only) ---
-            st.session_state.barcode_input = ""  # Reset input value in session state
-            barcode_input_placeholder.empty()  # Clear the UI field by emptying its placeholder
-            barcode_input_placeholder.text_input("🧪 Scan or type barcode:", value="", key="barcode_input")  # Re-render input field with empty value
+            # --- Do not reset the input field immediately --- 
+            st.session_state.barcode_input = barcode_input  # Keep the barcode input for user feedback
 
         # --- Full table with highlights ---
         st.subheader("📋 Full Table")
-        st.dataframe(st.session_state.df.style.apply(highlight_match, axis=1))  # Apply highlight to the full table
+        st.dataframe(st.session_state.df.style.applymap(lambda val, col: highlight_match(val, col), subset=highlight_cols))
 
         # --- Download updated Excel ---
         if st.session_state.df is not None:
@@ -80,7 +78,7 @@ if uploaded_file:
             ws = wb.active
 
             # Add Scan_Status column if missing
-            if "Scan_Status" not in [cell.value for cell in ws[1]]:
+            if "Scan_Status" not in [cell.value for cell in ws[1]]: 
                 ws.cell(row=1, column=ws.max_column + 1, value="Scan_Status")
 
             # Map headers
