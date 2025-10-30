@@ -50,18 +50,18 @@ if uploaded_file:
                 # --- Highlight and Show current match (highlight columns in yellow) ---
                 st.subheader("🔹 Current Match(es)")
 
-                # Highlighting the "Screen ID", "Visit", "Sample Name" columns in yellow
-                def highlight_columns(val):
-                    color = 'background-color: yellow'  # yellow background for highlight
-                    styles = [''] * len(val)
-                    if val.name in ['Screen ID', 'Visit', 'Sample Name']:
-                        styles[val.name == 'Screen ID'] = color
-                        styles[val.name == 'Visit'] = color
-                        styles[val.name == 'Sample Name'] = color
+                # Apply styling to highlight specific columns
+                def highlight_row(row):
+                    # Apply yellow background for "Screen ID", "Visit", "Sample Name"
+                    styles = [''] * len(row)
+                    highlight_cols = ['Screen ID', 'Visit', 'Sample Name']
+                    for i, col in enumerate(row.index):
+                        if col in highlight_cols:
+                            styles[i] = 'background-color: yellow'
                     return styles
 
-                # Applying the highlight function to the dataframe
-                styled_match = current_match.style.apply(highlight_columns, axis=1)
+                # Apply the highlighting function to the matched rows
+                styled_match = current_match.style.apply(highlight_row, axis=1)
 
                 # Display the styled dataframe
                 st.dataframe(styled_match)
