@@ -63,10 +63,9 @@ if uploaded_file:
             barcode_input_placeholder.empty()  # Clear the UI field by emptying its placeholder
             barcode_input_placeholder.text_input("🧪 Scan or type barcode:", key="barcode_input")  # Reset input field
 
-        # --- Display full table ---
-        if st.session_state.df is not None:
-            st.subheader("📋 Full Table")
-            st.dataframe(st.session_state.df)
+        # --- Full table with highlights ---
+        st.subheader("📋 Full Table")
+        st.dataframe(st.session_state.df.style.apply(highlight_match, axis=1))  # Apply highlight to the full table
 
         # --- Download updated Excel ---
         if st.session_state.df is not None:
