@@ -28,9 +28,6 @@ if uploaded_file:
             st.session_state.df = df
         st.success("✅ File loaded. Ready to scan.")
 
-        # Optional preview with st.expander("🔍 Preview File Contents"):
-        st.dataframe(st.session_state.df)
-
         # --- Barcode input ---
         barcode_input = barcode_input_placeholder.text_input("🧪 Scan or type barcode:", value=st.session_state.barcode_input)
 
@@ -39,7 +36,8 @@ if uploaded_file:
             current_match = df[df['Barcode'].astype(str) == str(barcode_input)]
 
             if current_match.empty:
-                st.error("❌ No match found.")
+                # Update error message to include the scanned barcode
+                st.error(f"❌ No match found for {barcode_input}.")
             else:
                 st.success("✅ Sample found:")
                 # Update Scan_Status in backend
