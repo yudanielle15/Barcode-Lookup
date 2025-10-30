@@ -65,8 +65,12 @@ if uploaded_file:
                 st.subheader("🔹 Current Match(es)")
                 st.dataframe(current_match.style.apply(highlight_match, axis=1))  # Apply highlight to current match
 
-            # --- Do not reset the input field immediately --- 
-            st.session_state.barcode_input = barcode_input  # Keep the barcode input for user feedback
+            # --- Clear the barcode input UI after processing ---
+            st.session_state.barcode_input = ""  # Reset the barcode input value in session state
+            barcode_input_placeholder.empty()  # Clear the input UI field
+
+            # Re-render barcode input placeholder with an empty value
+            barcode_input_placeholder.text_input("🧪 Scan or type barcode:", value="", key="barcode_input")  # Re-render the input field
 
         # --- Full table with highlights ---
         st.subheader("📋 Full Table")
