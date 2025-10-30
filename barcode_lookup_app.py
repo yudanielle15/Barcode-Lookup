@@ -23,27 +23,25 @@ if uploaded_file:
                 df["Scan_Status"] = ""
             st.session_state.df = df
 
-        df = st.session_state.df  # always use session state
-
         st.success("✅ File loaded. Ready to scan.")
 
         # Optional preview
         with st.expander("🔍 Preview File Contents"):
-            st.dataframe(df)
+            st.dataframe(st.session_state.df)
 
-        # Initialize barcode input in session state
+        # --- Barcode input using session_state ---
         if "barcode_input" not in st.session_state:
             st.session_state.barcode_input = ""
 
-        # Text input linked to session state
         barcode_input = st.text_input(
             "🧪 Scan or type barcode:",
             value=st.session_state.barcode_input,
             key="barcode_input"
         )
 
-        # Process barcode if not empty
+        # Process barcode if entered
         if barcode_input.strip() != "":
+            df = st.session_state.df
             current_match = df[df['Barcode'].astype(str) == str(barcode_input)]
 
             if current_match.empty:
@@ -74,11 +72,12 @@ if uploaded_file:
                 st.subheader("📋 Full Table")
                 st.dataframe(df.style.apply(highlight_match, axis=1))
 
-            # Clear the input immediately after processing
-            st.session_state.barcode_input = ""
+            # --- CLEAR input immediately in session state ---
+            st.session_state.barcode_input = ""  # This clears the text_input in the UI
 
         # Download button preserving original formatting
-        if df is not None and not df.empty:
+        if st.session_state.df is not None:
+            df = st.session_state.df
             original_filename = uploaded_file.name
             new_filename = original_filename.replace(".xlsx", "_Scanned.xlsx")
 
