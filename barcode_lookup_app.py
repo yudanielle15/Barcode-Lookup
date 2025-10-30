@@ -43,16 +43,24 @@ if uploaded_file:
                 st.error("❌ No match found.")
             else:
                 st.success("✅ Sample found:")
-                st.dataframe(result)
 
                 # Update Scan_Status to "Matched" for this barcode
                 df.loc[df['Barcode'].astype(str) == str(barcode_input), 'Scan_Status'] = "Matched"
-
-                # Save back to session state
                 st.session_state.df = df
 
                 # Confirmation message
                 st.info(f"🗸 Scan status updated for barcode: {barcode_input}")
+
+                # Highlight specific columns of matched row(s)
+                highlight_cols = ["Screen ID", "Visit", "Sample Name"]
+
+                def highlight_match(row):
+                    if str(row['Barcode']) == str(barcode_input):
+                        return ['background-color: yellow' if col in highlight_cols else '' for col in row.index]
+                    else:
+                        return ['' for _ in row.index]
+
+                st.dataframe(df.style.apply(highlight_match, axis=1))
 
         # Download updated Excel button (always available once file loaded)
         if st.session_state.df is not None:
