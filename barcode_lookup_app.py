@@ -28,6 +28,10 @@ if uploaded_file:
             st.session_state.df = df
         st.success("✅ File loaded. Ready to scan.")
 
+        # --- Display the loaded table ---
+        st.subheader("📋 Loaded Table")
+        st.dataframe(st.session_state.df)
+
         # --- Barcode input ---
         barcode_input = barcode_input_placeholder.text_input("🧪 Scan or type barcode:", value=st.session_state.barcode_input)
 
