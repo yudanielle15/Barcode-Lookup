@@ -10,11 +10,22 @@ st.write("Upload your Excel file locally, and scan or enter a barcode.")
 # Initialize session state
 if "df" not in st.session_state:
     st.session_state.df = None
+if "barcode_input" not in st.session_state:
+    st.session_state.barcode_input = ""  # To track barcode input in session state
+
+# Barcode input placeholder to reset input UI
+barcode_input_placeholder = st.empty()  # This is the dynamic container for the input field
+
+# Define the highlight_match function outside of the conditional blocks
+highlight_cols = ["Screen ID", "Visit", "Sample Name"]
+
+def highlight_match(row):
+    if str(row['Barcode']) == str(st.session_state.barcode_input):
+        return ['background-color: yellow' if col in highlight_cols else '' for col in row.index]
+    else:
+        return ['' for _ in row.index]
 
 uploaded_file = st.file_uploader("📁 Upload your sample Excel file", type=["xlsx"])
-
-# To store barcode input
-barcode_input_placeholder = st.empty()  # This is the dynamic container for the input field
 
 if uploaded_file:
     try:
@@ -31,7 +42,7 @@ if uploaded_file:
             st.dataframe(st.session_state.df)
 
         # --- Barcode input ---
-        barcode_input = barcode_input_placeholder.text_input("🧪 Scan or type barcode:")
+        barcode_input = barcode_input_placeholder.text_input("🧪 Scan or type barcode:", value=st.session_state.barcode_input)
 
         if barcode_input:
             df = st.session_state.df
@@ -46,22 +57,14 @@ if uploaded_file:
                 st.session_state.df = df
                 st.info(f"🗸 Scan status updated for barcode: {barcode_input}")
 
-                # Highlight columns
-                highlight_cols = ["Screen ID", "Visit", "Sample Name"]
-
-                def highlight_match(row):
-                    if str(row['Barcode']) == str(barcode_input):
-                        return ['background-color: yellow' if col in highlight_cols else '' for col in row.index]
-                    else:
-                        return ['' for _ in row.index]
-
                 # Show current match
                 st.subheader("🔹 Current Match(es)")
                 st.dataframe(current_match.style.apply(highlight_match, axis=1))
 
             # --- Clear the input field (UI only) ---
+            st.session_state.barcode_input = ""  # Reset input value in session state
             barcode_input_placeholder.empty()  # Clear the UI field by emptying its placeholder
-            barcode_input_placeholder.text_input("🧪 Scan or type barcode:", key="barcode_input")  # Reset input field
+            barcode_input_placeholder.text_input("🧪 Scan or type barcode:", value="", key="barcode_input")  # Re-render input field with empty value
 
         # --- Full table with highlights ---
         st.subheader("📋 Full Table")
