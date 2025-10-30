@@ -15,6 +15,10 @@ if "df" not in st.session_state:
 if "barcode_input" not in st.session_state:
     st.session_state.barcode_input = ""
 
+# Callback to clear input after pressing Enter
+def clear_input():
+    st.session_state.barcode_input = ""
+
 uploaded_file = st.file_uploader("📁 Upload your sample Excel file", type=["xlsx"])
 
 if uploaded_file:
@@ -31,11 +35,12 @@ if uploaded_file:
             with st.expander("🔍 Preview File Contents"):
                 st.dataframe(st.session_state.df)
 
-        # Barcode input field using session state
+        # Barcode input field using session state and callback
         barcode_input = st.text_input(
             "🧪 Scan or type barcode:",
             value=st.session_state.barcode_input,
             key="barcode_input",
+            on_change=clear_input
         )
 
         if barcode_input:
@@ -51,9 +56,6 @@ if uploaded_file:
                 df.loc[df['Barcode'].astype(str) == str(barcode_input), 'Scan_Status'] = "Matched"
                 st.session_state.df = df
                 st.info(f"🗸 Scan status updated for barcode: {barcode_input}")
-
-                # Clear the input field after processing
-                st.session_state.barcode_input = ""
 
             # Columns to highlight
             highlight_cols = ["Screen ID", "Visit", "Sample Name"]
