@@ -31,9 +31,18 @@ if uploaded_file:
         with st.expander("🔍 Preview File Contents"):
             st.dataframe(st.session_state.df)
 
-        # Barcode input with session_state key
-        barcode_input = st.text_input("🧪 Scan or type barcode:", key="barcode_input")
+        # Function to clear barcode input
+        def clear_input():
+            st.session_state.barcode_input = ""
 
+        # Barcode input with key and on_change callback
+        barcode_input = st.text_input(
+            "🧪 Scan or type barcode:",
+            key="barcode_input",
+            on_change=clear_input
+        )
+
+        # Process barcode if entered
         if barcode_input:
             df = st.session_state.df
             current_match = df[df['Barcode'].astype(str) == str(barcode_input)]
@@ -65,9 +74,6 @@ if uploaded_file:
                 # Full table below
                 st.subheader("📋 Full Table")
                 st.dataframe(df.style.apply(highlight_match, axis=1))
-
-            # **Clear the input field automatically after processing**
-            st.session_state.barcode_input = ""
 
         # Download button preserving original formatting
         if st.session_state.df is not None:
