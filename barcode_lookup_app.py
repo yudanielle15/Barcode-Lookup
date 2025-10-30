@@ -37,32 +37,39 @@ if uploaded_file:
 
         if barcode_input:
             df = st.session_state.df
-            result = df[df['Barcode'].astype(str) == str(barcode_input)]
+            # Find current match(es)
+            current_match = df[df['Barcode'].astype(str) == str(barcode_input)]
 
-            if result.empty:
+            if current_match.empty:
                 st.error("❌ No match found.")
             else:
                 st.success("✅ Sample found:")
 
-                # Update Scan_Status to "Matched" for this barcode
+                # Update Scan_Status to "Matched"
                 df.loc[df['Barcode'].astype(str) == str(barcode_input), 'Scan_Status'] = "Matched"
                 st.session_state.df = df
 
-                # Confirmation message
                 st.info(f"🗸 Scan status updated for barcode: {barcode_input}")
 
-                # Highlight specific columns of matched row(s)
+                # Columns to highlight
                 highlight_cols = ["Screen ID", "Visit", "Sample Name"]
 
+                # Highlight function
                 def highlight_match(row):
                     if str(row['Barcode']) == str(barcode_input):
                         return ['background-color: yellow' if col in highlight_cols else '' for col in row.index]
                     else:
                         return ['' for _ in row.index]
 
+                # Show the current matched row(s) at the top
+                st.subheader("🔹 Current Match(es)")
+                st.dataframe(current_match.style.apply(highlight_match, axis=1))
+
+                # Show full table below
+                st.subheader("📋 Full Table")
                 st.dataframe(df.style.apply(highlight_match, axis=1))
 
-        # Download updated Excel button (always available once file loaded)
+        # Download button
         if st.session_state.df is not None:
             buffer = BytesIO()
             st.session_state.df.to_excel(buffer, index=False)
