@@ -50,7 +50,7 @@ if uploaded_file:
                 # --- Highlight and Show current match (highlight columns in yellow) ---
                 st.subheader("🔹 Current Match(es)")
 
-                # Apply styling to highlight specific columns
+                # Apply styling to highlight specific columns in matched rows
                 def highlight_row(row):
                     # Apply yellow background for "Screen ID", "Visit", "Sample Name"
                     styles = [''] * len(row)
@@ -66,9 +66,25 @@ if uploaded_file:
                 # Display the styled dataframe
                 st.dataframe(styled_match)
 
-                # --- Full table ---
+                # --- Full table with highlighting for current match ---
                 st.subheader("📋 Full Table")
-                st.dataframe(st.session_state.df)
+
+                # Apply styling only to the matched rows in the full table
+                def highlight_full_table(row):
+                    # Check if this row is a match and highlight the relevant columns
+                    styles = [''] * len(row)
+                    highlight_cols = ['Screen ID', 'Visit', 'Sample Name']
+                    if row['Barcode'] == barcode_input:
+                        for i, col in enumerate(row.index):
+                            if col in highlight_cols:
+                                styles[i] = 'background-color: yellow'
+                    return styles
+
+                # Apply the highlight to the entire table
+                styled_full_table = df.style.apply(highlight_full_table, axis=1)
+
+                # Display the full table with highlighted columns for the current match
+                st.dataframe(styled_full_table)
 
                 # --- Download updated Excel ---
                 if st.session_state.df is not None:
