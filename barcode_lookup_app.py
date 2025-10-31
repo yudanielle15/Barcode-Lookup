@@ -125,7 +125,20 @@ if uploaded_file:
         # Re-render barcode input placeholder with an empty value
         barcode_input_placeholder.text_input("🧪 Scan or type barcode:", value="", key="barcode_input")
 
+        # Injecting JavaScript to focus on the input field
+        st.markdown("""
+            <script>
+                window.onload = function() {
+                    document.getElementById("your_input_id").focus();
+                };
+            </script>
+        """, unsafe_allow_html=True)
+        
+        # Define your input field
+        user_input = st.text_input("Enter test barcode:", key="your_input_id")
+
     except Exception as e:
         st.error(f"❌ Error reading file: {e}")
 else:
     st.info("⬆️ Please upload an Excel file to begin.")
+
