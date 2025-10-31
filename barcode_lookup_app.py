@@ -126,13 +126,12 @@ if uploaded_file:
         barcode_input_placeholder.text_input("🧪 Scan or type barcode:", value="", key="barcode_input")
 
         ##### test
-        # Inject JavaScript to focus on the input field and clear it after input
+        # Inject JavaScript to clear the input field
         st.markdown("""
             <script>
-                function clearAndFocusInput() {
+                function clearInput() {
                     var inputField = document.getElementById("your_input_id");
-                    inputField.value = '';  // Clear input field
-                    inputField.focus();     // Focus the input field
+                    inputField.value = '';  // Clear the input field
                 }
             </script>
         """, unsafe_allow_html=True)
@@ -144,7 +143,7 @@ if uploaded_file:
         # Input field with a specific ID and key
         user_input = st.text_input("Enter your name:", key="your_input_id")
         
-        # When user submits the input, clear the input and refocus
+        # When user submits the input, clear the input field
         if user_input:
             # You can perform any action here (e.g., display something after input is entered)
             st.write(f"Hello, {user_input}!")
@@ -152,25 +151,20 @@ if uploaded_file:
             # Change state to indicate input has been submitted
             st.session_state.submitted = True
             
-            # Trigger the JavaScript function to clear and focus the input field
+            # Trigger the JavaScript function to clear the input field
             st.markdown("""
                 <script>
-                    // Trigger the focus and clear action with a delay to ensure it works after input
-                    setTimeout(function() {
-                        clearAndFocusInput();
-                    }, 500);  // 500ms delay to ensure the field clears and focuses after input
+                    // Trigger the input field to clear immediately after submission
+                    clearInput();
                 </script>
             """, unsafe_allow_html=True)
-        
-        # Optionally add a button to reset the form or trigger clearing
-        if st.session_state.submitted:
-            st.button("Submit again", on_click=lambda: st.session_state.update({"submitted": False}))
         ####################
     
     except Exception as e:
         st.error(f"❌ Error reading file: {e}")
 else:
     st.info("⬆️ Please upload an Excel file to begin.")
+
 
 
 
