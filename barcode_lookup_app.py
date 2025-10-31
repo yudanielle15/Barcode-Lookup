@@ -143,7 +143,7 @@ if uploaded_file:
         
         # --- Clear the product input UI after processing --- 
         if st.session_state.product_input:  # When user enters something
-            st.write(f"Processed: {st.session_state.product_input}")  # Or any other logic for processing
+            # st.write(f"Processed: {st.session_state.product_input}")  # Or any other logic for processing
             
             # Reset the product input value in session state
             st.session_state.product_input = ""  # Clear input value
@@ -171,5 +171,6 @@ if uploaded_file:
         st.error(f"❌ Error reading file: {e}")
 else:
     st.info("⬆️ Please upload an Excel file to begin.")
+
 
 
