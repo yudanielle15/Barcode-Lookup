@@ -125,20 +125,46 @@ if uploaded_file:
         # Re-render barcode input placeholder with an empty value
         barcode_input_placeholder.text_input("🧪 Scan or type barcode:", value="", key="barcode_input")
 
-        # Injecting JavaScript to focus on the input field
+        ##### test
+        import streamlit as st
+
+        # Injecting JavaScript to focus on the input field and clear it after input
         st.markdown("""
             <script>
-                window.onload = function() {
-                    document.getElementById("your_input_id").focus();
-                };
+                function clearAndFocusInput() {
+                    // Clear input field and focus on it
+                    var inputField = document.getElementById("your_input_id");
+                    inputField.value = '';  // Clear input field
+                    inputField.focus();     // Focus the input field
+                }
             </script>
         """, unsafe_allow_html=True)
         
-        # Define your input field
-        user_input = st.text_input("Enter test barcode:", key="your_input_id")
-
+        # Create a state to track if input has been submitted
+        if 'submitted' not in st.session_state:
+            st.session_state.submitted = False
+        
+        # Input field with a specific ID and key
+        user_input = st.text_input("Enter your name:", key="your_input_id")
+        
+        # When user submits the input, clear the input and refocus
+        if user_input:
+            # You can perform any action here (e.g., display something after input is entered)
+            st.write(f"Hello, {user_input}!")
+            
+            # Change state to indicate input has been submitted
+            st.session_state.submitted = True
+        
+            # Trigger the JavaScript function to clear and focus the input field
+            st.markdown("""
+                <script>
+                    clearAndFocusInput();
+                </script>
+            """, unsafe_allow_html=True)
+        ####################
     except Exception as e:
         st.error(f"❌ Error reading file: {e}")
 else:
     st.info("⬆️ Please upload an Excel file to begin.")
+
 
