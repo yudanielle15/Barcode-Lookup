@@ -2,24 +2,10 @@ import streamlit as st
 import pandas as pd
 from io import BytesIO
 from openpyxl import load_workbook
-import streamlit.components.v1 as components
 
-# Set page configuration
 st.set_page_config(page_title="Biomarker Sample Barcode Lookup Web App", layout="centered")
 st.title("🔬 Biomarker Sample Barcode Lookup Web App")
 st.write("Upload your Excel file locally, and scan or enter a barcode.")
-
-# Function to inject JavaScript to focus the barcode input field
-def set_focus():
-    components.html("""
-    <script>
-        // Find the text input field and set focus
-        setTimeout(function() {
-            const input = document.querySelector('input[type="text"]');
-            if (input) input.focus();
-        }, 100);
-    </script>
-    """, height=0)
 
 # Initialize session state
 if "df" not in st.session_state:
@@ -138,9 +124,6 @@ if uploaded_file:
 
         # Re-render barcode input placeholder with an empty value
         barcode_input_placeholder.text_input("🧪 Scan or type barcode:", value="", key="barcode_input")
-
-        # Call the JavaScript to focus the input
-        set_focus()
 
     except Exception as e:
         st.error(f"❌ Error reading file: {e}")
