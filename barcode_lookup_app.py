@@ -31,7 +31,7 @@ if uploaded_file:
         if 'barcode_input' not in st.session_state:
             st.session_state.barcode_input = ""  # Initialize the barcode input
 
-        # Create a placeholder for barcode input (relabelled from product_input) #
+        # Create a placeholder for barcode input
         barcode_input_placeholder = st.empty()
 
         # Process the barcode input when it exists
@@ -109,13 +109,11 @@ if uploaded_file:
                         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                     )
 
-            # Clear the barcode input **after** processing the barcode
+            # --- Clear the barcode input only after processing the barcode ---
+            # This ensures that the input field does not disappear before processing
             st.session_state.barcode_input = ""  # Clear input value
 
-            # --- Clear the input UI field after processing the barcode ---
-            barcode_input_placeholder.empty()
-
-            # Re-render barcode input with an empty value and refocus
+            # --- Re-render the barcode input and refocus ---
             barcode_input_placeholder.text_input("🧪 Scan or type barcode info:", value="", key="barcode_input")
 
             # Add a little delay to give Streamlit time to update the widget and refocus
