@@ -125,6 +125,15 @@ if uploaded_file:
         # Re-render barcode input placeholder with an empty value
         barcode_input_placeholder.text_input("🧪 Scan or type barcode:", value="", key="barcode_input")
 
+        # Add custom JavaScript to focus on the input field
+        st.markdown("""
+            <script>
+                window.onload = function() {
+                    document.getElementById('barcode_input').focus();
+                }
+            </script>
+        """, unsafe_allow_html=True)
+
     except Exception as e:
         st.error(f"❌ Error reading file: {e}")
 else:
