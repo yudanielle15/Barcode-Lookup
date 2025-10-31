@@ -126,13 +126,10 @@ if uploaded_file:
         barcode_input_placeholder.text_input("🧪 Scan or type barcode:", value="", key="barcode_input")
 
         ##### test
-        import streamlit as st
-
-        # Injecting JavaScript to focus on the input field and clear it after input
+        # Inject JavaScript to focus on the input field and clear it after input
         st.markdown("""
             <script>
                 function clearAndFocusInput() {
-                    // Clear input field and focus on it
                     var inputField = document.getElementById("your_input_id");
                     inputField.value = '';  // Clear input field
                     inputField.focus();     // Focus the input field
@@ -154,17 +151,26 @@ if uploaded_file:
             
             # Change state to indicate input has been submitted
             st.session_state.submitted = True
-        
+            
             # Trigger the JavaScript function to clear and focus the input field
             st.markdown("""
                 <script>
-                    clearAndFocusInput();
+                    // Trigger the focus and clear action with a delay to ensure it works after input
+                    setTimeout(function() {
+                        clearAndFocusInput();
+                    }, 500);  // 500ms delay to ensure the field clears and focuses after input
                 </script>
             """, unsafe_allow_html=True)
+        
+        # Optionally add a button to reset the form or trigger clearing
+        if st.session_state.submitted:
+            st.button("Submit again", on_click=lambda: st.session_state.update({"submitted": False}))
         ####################
+    
     except Exception as e:
         st.error(f"❌ Error reading file: {e}")
 else:
     st.info("⬆️ Please upload an Excel file to begin.")
+
 
 
