@@ -126,45 +126,43 @@ if uploaded_file:
         barcode_input_placeholder.text_input("🧪 Scan or type barcode:", value="", key="barcode_input")
 
         ##### test
-        # Inject JavaScript to clear the input field
-        st.markdown("""
-            <script>
-                function clearInput() {
-                    var inputField = document.getElementById("your_input_id");
-                    inputField.value = '';  // Clear the input field
-                }
-            </script>
-        """, unsafe_allow_html=True)
+        import streamlit as st
         
-        # Create a state to track if input has been submitted
-        if 'submitted' not in st.session_state:
-            st.session_state.submitted = False
+        # --- Initialize session state to track the input ---
+        if 'product_input' not in st.session_state:
+            st.session_state.product_input = ""
         
-        # Input field with a specific ID and key
-        user_input = st.text_input("Enter your name:", key="your_input_id")
+        # Create a placeholder for product input (relabelled from barcode_input)
+        product_input_placeholder = st.empty()
         
-        # When user submits the input, clear the input field
-        if user_input:
-            # You can perform any action here (e.g., display something after input is entered)
-            st.write(f"Hello, {user_input}!")
-            
-            # Change state to indicate input has been submitted
-            st.session_state.submitted = True
-            
-            # Trigger the JavaScript function to clear the input field
+        # --- Clear the product input UI after processing ---
+        if st.session_state.product_input:  # When user enters something
+            st.write(f"Processed: {st.session_state.product_input}")  # Or any other logic for processing
+        
+            # Reset the product input value in session state
+            st.session_state.product_input = ""  # Clear input value
+        
+            # Clear the input UI field
+            product_input_placeholder.empty()
+        
+            # Re-render product input with an empty value and refocus
+            product_input_placeholder.text_input("🧪 Scan or type product info:", value="", key="product_input")
+        
+            # Add a little delay to give Streamlit time to update the widget and refocus
             st.markdown("""
                 <script>
-                    // Trigger the input field to clear immediately after submission
-                    clearInput();
+                    setTimeout(function() {
+                        document.getElementById("product_input").focus();  // Refocus after clearing
+                    }, 100);  // Small delay to ensure the widget re-renders before focusing
                 </script>
             """, unsafe_allow_html=True)
+        
+        else:
+            # If no product input yet, render the input widget
+            product_input_placeholder.text_input("🧪 Scan or type product info:", value="", key="product_input")
         ####################
     
     except Exception as e:
         st.error(f"❌ Error reading file: {e}")
 else:
     st.info("⬆️ Please upload an Excel file to begin.")
-
-
-
-
