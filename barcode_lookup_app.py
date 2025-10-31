@@ -125,14 +125,20 @@ if uploaded_file:
             # Re-render barcode input placeholder with an empty value
             barcode_input_placeholder.text_input("🧪 Scan or type barcode:", value="", key="barcode_input")
 
-            # Add JavaScript to clear and refocus the barcode input field (simulate auto-focus)
+            # Add JavaScript to clear, type something, then delete, and refocus
             st.markdown("""
             <script>
                 const barcodeInput = document.getElementById("barcode_input");
                 if (barcodeInput) {
                     setTimeout(function() {
-                        barcodeInput.value = ''; // Clear the field
-                        barcodeInput.focus(); // Refocus the input field
+                        // Step 1: Clear the field
+                        barcodeInput.value = '';
+                        // Step 2: Type something into the field
+                        barcodeInput.value = 'a'; 
+                        // Step 3: Delete it immediately
+                        barcodeInput.value = ''; 
+                        // Step 4: Refocus the input field
+                        barcodeInput.focus(); 
                     }, 100); // A short delay to ensure it works
                 }
             </script>
