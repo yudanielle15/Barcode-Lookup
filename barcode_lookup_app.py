@@ -127,6 +127,16 @@ if uploaded_file:
         barcode_input_placeholder.text_input("🧪 Scan or type barcode info:", 
                                               value=st.session_state.barcode_input, key="barcode_input")
 
+        # Inject JavaScript to refocus the input field after clearing
+        st.markdown("""
+            <script>
+                const inputField = document.getElementById('barcode_input');
+                if (inputField) {
+                    inputField.focus();  // Force refocus after the widget updates
+                }
+            </script>
+        """, unsafe_allow_html=True)
+
     except Exception as e:
         st.error(f"❌ Error reading file: {e}")
 else:
