@@ -123,9 +123,10 @@ if uploaded_file:
         barcode_input_placeholder.empty()  # Clear the input UI field
 
         # Re-render barcode input placeholder with an empty value
-        barcode_input_placeholder.text_input("🧪 Scan or type barcode:", value="", key="barcode_input")
+        barcode_input_placeholder.text_input("🧪 Scan or type barcode:", value="", key="barcode_input", autofocus=True)
 
     except Exception as e:
         st.error(f"❌ Error reading file: {e}")
 else:
     st.info("⬆️ Please upload an Excel file to begin.")
+
