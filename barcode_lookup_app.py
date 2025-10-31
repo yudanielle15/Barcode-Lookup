@@ -140,8 +140,11 @@ if uploaded_file:
             st.markdown("""
             <script>
                 setTimeout(function() {
-                    document.getElementById("barcode_input").focus(); // Refocus after clearing
-                }, 100); // Small delay to ensure the widget re-renders before focusing
+                    const barcodeInputField = document.getElementById("barcode_input");
+                    if (barcodeInputField) {
+                        barcodeInputField.focus();
+                    }
+                }, 500); // Increase the timeout delay to ensure focus happens after rendering
             </script>
             """, unsafe_allow_html=True)
         else:
