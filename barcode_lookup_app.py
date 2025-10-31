@@ -32,9 +32,13 @@ if uploaded_file:
         st.subheader("📋 Loaded Table")
         st.dataframe(st.session_state.df)
 
-        # --- Barcode input ---
-        barcode_input = barcode_input_placeholder.text_input("🧪 Scan or type barcode:", value=st.session_state.barcode_input)
-
+        # --- Initialize session state to track the input --- 
+        if 'barcode_input' not in st.session_state:
+            st.session_state.barcode_input = ""    
+            
+        # Create a placeholder for barcode input
+        barcode_input_placeholder = st.empty()
+        
         if barcode_input:
             df = st.session_state.df
             current_match = df[df['Barcode'].astype(str) == str(barcode_input)]
@@ -118,59 +122,30 @@ if uploaded_file:
                         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                     )
 
-        # --- Clear the barcode input UI after processing ---
-        st.session_state.barcode_input = ""  # Reset the barcode input value in session state
-        barcode_input_placeholder.empty()  # Clear the input UI field
-
-        # Re-render barcode input placeholder with an empty value
-        barcode_input_placeholder.text_input("🧪 Scan or type barcode:", value="", key="barcode_input")
-
-        # Add a little delay to give Streamlit time to update the widget and refocus
-        st.markdown("""
-        <script>
-            setTimeout(function() {
-                document.getElementById("barcode_input").focus(); // Refocus after clearing
-            }, 100); // Small delay to ensure the widget re-renders before focusing
-        </script>
-        """, unsafe_allow_html=True)
-
-        # --- Initialize session state to track the input --- 
-        if 'product_input' not in st.session_state:
-            st.session_state.product_input = "" 
-  #####################      
-        # Create a placeholder for product input (relabelled from barcode_input)
-        product_input_placeholder = st.empty() 
-        
-        # --- Clear the product input UI after processing --- 
-        if st.session_state.product_input:  # When user enters something
-            # st.write(f"Processed: {st.session_state.product_input}")  # Or any other logic for processing
-            
-            # Reset the product input value in session state
-            st.session_state.product_input = ""  # Clear input value
+        # --- Clear the barcode input UI after processing --- 
+        if st.session_state.barcode_input:  # When user enters something
+            # Reset the barcode input value in session state
+            st.session_state.barcode_input = ""  # Clear input value
             
             # Clear the input UI field
-            product_input_placeholder.empty()
+            barcode_input_placeholder.empty()
             
-            # Re-render product input with an empty value and refocus
-            product_input_placeholder.text_input("🧪 Scan or type product info:", value="", key="product_input")
+            # Re-render barcode input with an empty value and refocus
+            barcode_input_placeholder.text_input("🧪 Scan or type barcode info:", value="", key="barcode_input")
             
             # Add a little delay to give Streamlit time to update the widget and refocus
             st.markdown("""
             <script>
                 setTimeout(function() {
-                    document.getElementById("product_input").focus(); // Refocus after clearing
+                    document.getElementById("barcode_input").focus(); // Refocus after clearing
                 }, 100); // Small delay to ensure the widget re-renders before focusing
             </script>
             """, unsafe_allow_html=True)
         else:
-            # If no product input yet, render the input widget
-            product_input_placeholder.text_input("🧪 Scan or type product info:", value="", key="product_input")
-    #####################        
+            # If no barcode input yet, render the input widget
+            barcode_input_placeholder.text_input("🧪 Scan or type barcode info:", value="", key="barcode_input")
 
     except Exception as e:
         st.error(f"❌ Error reading file: {e}")
 else:
     st.info("⬆️ Please upload an Excel file to begin.")
-
-
-
