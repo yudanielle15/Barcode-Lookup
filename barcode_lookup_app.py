@@ -111,6 +111,7 @@ if uploaded_file:
                     )
 
             # --- Clear and refocus the barcode input field after processing --- #
+            # Store the input temporarily, clear and refocus later
             st.session_state.barcode_input = ""  # Clear input value
             
             # Clear the input UI field
