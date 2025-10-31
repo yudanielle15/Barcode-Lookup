@@ -33,7 +33,7 @@ if uploaded_file:
         st.dataframe(st.session_state.df)
 
         # --- Barcode input ---
-        barcode_input = barcode_input_placeholder.text_input("🧪 Scan or type barcode:", value=st.session_state.barcode_input, key="barcode_input_1")
+        barcode_input = barcode_input_placeholder.text_input("🧪 Scan or type barcode:", value=st.session_state.barcode_input)
 
         if barcode_input:
             df = st.session_state.df
@@ -118,15 +118,21 @@ if uploaded_file:
                         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                     )
 
-            # --- Clear the barcode input UI after processing ---
-            st.session_state.barcode_input = ""  # Reset the barcode input value in session state
-            barcode_input_placeholder.empty()  # Clear the input UI field
+        # --- Clear the barcode input UI after processing ---
+        st.session_state.barcode_input = ""  # Reset the barcode input value in session state
+        barcode_input_placeholder.empty()  # Clear the input UI field
 
-            # Re-render barcode input placeholder with an empty value and new key
-            barcode_input_placeholder.text_input("🧪 Scan or type barcode:", value="", key="barcode_input_2")
+        # Re-render barcode input placeholder with an empty value
+        barcode_input_placeholder.text_input("🧪 Scan or type barcode:", value="", key="barcode_input")
 
-            # Trigger a rerun to refresh the input field and give it focus
-            st.experimental_rerun()
+        # Add a little delay to give Streamlit time to update the widget and refocus
+        st.markdown("""
+        <script>
+            setTimeout(function() {
+                document.getElementById("barcode_input").focus(); // Refocus after clearing
+            }, 100); // Small delay to ensure the widget re-renders before focusing
+        </script>
+        """, unsafe_allow_html=True)
 
     except Exception as e:
         st.error(f"❌ Error reading file: {e}")
