@@ -110,7 +110,7 @@ if uploaded_file:
                         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                     )
 
-            # --- Clear and refocus the barcode input field after processing --- #
+            # --- Clear the barcode input and refocus after match is displayed --- #
             # Store the input temporarily, clear and refocus later
             st.session_state.barcode_input = ""  # Clear input value
             
@@ -120,14 +120,8 @@ if uploaded_file:
             # Re-render barcode input with an empty value and refocus
             barcode_input_placeholder.text_input("🧪 Scan or type barcode info:", value="", key="barcode_input")
 
-            # Add a little delay to give Streamlit time to update the widget and refocus
-            st.markdown("""
-            <script>
-                setTimeout(function() {
-                    document.getElementById("barcode_input").focus(); // Refocus after clearing
-                }, 100); // Small delay to ensure the widget re-renders before focusing
-            </script>
-            """, unsafe_allow_html=True)
+            # Wait a short time to ensure Streamlit re-renders the widget before refocusing
+            st.experimental_rerun()
 
         else:
             # If no barcode input yet, render the input widget
