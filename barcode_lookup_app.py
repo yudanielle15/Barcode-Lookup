@@ -128,9 +128,12 @@ if uploaded_file:
         # Add custom JavaScript to focus on the input field
         st.markdown("""
             <script>
-                window.onload = function() {
-                    document.getElementById('barcode_input').focus();
-                }
+                setTimeout(function() {
+                    var barcodeInput = document.getElementById('barcode_input');
+                    if (barcodeInput) {
+                        barcodeInput.focus();
+                    }
+                }, 100);  // Delay the focus to ensure the input is rendered
             </script>
         """, unsafe_allow_html=True)
 
@@ -138,3 +141,4 @@ if uploaded_file:
         st.error(f"❌ Error reading file: {e}")
 else:
     st.info("⬆️ Please upload an Excel file to begin.")
+
