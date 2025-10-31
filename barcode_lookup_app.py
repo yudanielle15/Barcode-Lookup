@@ -31,7 +31,7 @@ if uploaded_file:
         if 'barcode_input' not in st.session_state:
             st.session_state.barcode_input = ""  # Initialize the barcode input
 
-        # Create a placeholder for barcode input
+        # Create a placeholder for barcode input (retain input field)
         barcode_input_placeholder = st.empty()
 
         # Process the barcode input when it exists
@@ -110,23 +110,12 @@ if uploaded_file:
                     )
 
             # --- Auto-clear the barcode input **after** processing ---
-            st.session_state.barcode_input = ""  # Clear input value
+            st.session_state.barcode_input = ""  # Clear input value (without affecting the widget)
 
-            # --- Re-render the barcode input and refocus ---
-            barcode_input_placeholder.text_input("🧪 Scan or type barcode info:", value="", key="barcode_input")
-
-            # Add a little delay to give Streamlit time to update the widget and refocus
-            st.markdown("""
-            <script>
-                setTimeout(function() {
-                    document.getElementById("barcode_input").focus(); // Refocus after clearing
-                }, 100); // Small delay to ensure the widget re-renders before focusing
-            </script>
-            """, unsafe_allow_html=True)
-
-        else:
-            # If no barcode input yet, render the input widget
-            barcode_input_placeholder.text_input("🧪 Scan or type barcode info:", value="", key="barcode_input")
+        # This section will make sure the barcode input stays visible
+        # and is refocused for the next scan/input
+        barcode_input_placeholder.text_input("🧪 Scan or type barcode info:", 
+                                              value=st.session_state.barcode_input, key="barcode_input")
 
     except Exception as e:
         st.error(f"❌ Error reading file: {e}")
