@@ -32,13 +32,13 @@ if uploaded_file:
         st.subheader("📋 Loaded Table")
         st.dataframe(st.session_state.df)
 
-        # Initialize session state to track the input
+        # --- Initialize session state to track the input --- 
         if 'barcode_input' not in st.session_state:
             st.session_state.barcode_input = ""    
 
         # Create a placeholder for barcode input
         barcode_input_placeholder = st.empty()
-        
+
         # Get the barcode input from session state
         barcode_input = st.session_state.barcode_input
 
@@ -140,11 +140,8 @@ if uploaded_file:
             st.markdown("""
             <script>
                 setTimeout(function() {
-                    const barcodeInputField = document.getElementById("barcode_input");
-                    if (barcodeInputField) {
-                        barcodeInputField.focus();
-                    }
-                }, 100); // Increased delay to ensure focus happens after rendering
+                    document.getElementById("barcode_input").focus(); // Refocus after clearing
+                }, 100); // Small delay to ensure the widget re-renders before focusing
             </script>
             """, unsafe_allow_html=True)
         else:
