@@ -123,7 +123,7 @@ if uploaded_file:
         barcode_input_placeholder.empty()  # Clear the input UI field
 
         # Re-render barcode input placeholder with an empty value
-        barcode_input_placeholder.text_input("🧪 Scan or type barcode:", value="", key="barcode_input")
+        # barcode_input_placeholder.text_input("🧪 Scan or type barcode:", value="", key="barcode_input")
 
         # Add a little delay to give Streamlit time to update the widget and refocus
         st.markdown("""
@@ -138,3 +138,4 @@ if uploaded_file:
         st.error(f"❌ Error reading file: {e}")
 else:
     st.info("⬆️ Please upload an Excel file to begin.")
+
