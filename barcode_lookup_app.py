@@ -33,7 +33,7 @@ if uploaded_file:
         st.dataframe(st.session_state.df)
 
         # --- Barcode input ---
-        barcode_input = barcode_input_placeholder.text_input("🧪 Scan or type barcode:", value=st.session_state.barcode_input)
+        barcode_input = barcode_input_placeholder.text_input("🧪 Scan or type barcode:", value=st.session_state.barcode_input, key="barcode_input_1")
 
         if barcode_input:
             df = st.session_state.df
@@ -122,14 +122,14 @@ if uploaded_file:
             st.session_state.barcode_input = ""  # Reset the barcode input value in session state
             barcode_input_placeholder.empty()  # Clear the input UI field
 
-            # Re-render barcode input placeholder with an empty value
-            barcode_input_placeholder.text_input("🧪 Scan or type barcode:", value="", key="barcode_input")
+            # Re-render barcode input placeholder with an empty value and new key
+            barcode_input_placeholder.text_input("🧪 Scan or type barcode:", value="", key="barcode_input_2")
 
             # Add JavaScript to refocus the input field
             st.markdown("""
                 <script>
                     setTimeout(function() {
-                        document.getElementById("barcode_input").focus();  // Refocus after clearing
+                        document.getElementById("barcode_input_2").focus();  // Refocus after clearing
                     }, 100);  // Small delay to ensure the widget re-renders before focusing
                 </script>
             """, unsafe_allow_html=True)
