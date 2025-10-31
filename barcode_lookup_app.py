@@ -144,7 +144,7 @@ if uploaded_file:
                     if (barcodeInputField) {
                         barcodeInputField.focus();
                     }
-                }, 500); // Increase the timeout delay to ensure focus happens after rendering
+                }, 100); // Increased delay to ensure focus happens after rendering
             </script>
             """, unsafe_allow_html=True)
         else:
