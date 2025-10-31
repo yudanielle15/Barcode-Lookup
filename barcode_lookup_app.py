@@ -109,8 +109,7 @@ if uploaded_file:
                         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                     )
 
-            # --- Clear the barcode input only after processing the barcode ---
-            # This ensures that the input field does not disappear before processing
+            # --- Auto-clear the barcode input **after** processing ---
             st.session_state.barcode_input = ""  # Clear input value
 
             # --- Re-render the barcode input and refocus ---
