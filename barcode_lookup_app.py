@@ -125,14 +125,8 @@ if uploaded_file:
             # Re-render barcode input placeholder with an empty value and new key
             barcode_input_placeholder.text_input("🧪 Scan or type barcode:", value="", key="barcode_input_2")
 
-            # Add JavaScript to refocus the input field
-            st.markdown("""
-                <script>
-                    setTimeout(function() {
-                        document.getElementById("barcode_input_2").focus();  // Refocus after clearing
-                    }, 100);  // Small delay to ensure the widget re-renders before focusing
-                </script>
-            """, unsafe_allow_html=True)
+            # Trigger a rerun to refresh the input field and give it focus
+            st.experimental_rerun()
 
     except Exception as e:
         st.error(f"❌ Error reading file: {e}")
