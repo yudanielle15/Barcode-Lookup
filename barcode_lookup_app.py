@@ -11,6 +11,10 @@ st.write("Upload your Excel file locally, and scan or enter a barcode.")
 if "df" not in st.session_state:
     st.session_state.df = None
 
+# Save the last scanned barcode (if it exists)
+if "last_scanned_barcode" not in st.session_state:
+    st.session_state.last_scanned_barcode = None
+
 uploaded_file = st.file_uploader("📁 Upload your sample Excel file", type=["xlsx"])
 
 if uploaded_file:
@@ -109,11 +113,17 @@ if uploaded_file:
                         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                     )
 
+            # --- Save the last scanned barcode before clearing ---
+            st.session_state.last_scanned_barcode = barcode_input
+
             # --- Auto-clear the barcode input **after** processing ---
             st.session_state.barcode_input = ""  # Clear input value (without affecting the widget)
 
-        # This section will make sure the barcode input stays visible
-        # and is refocused for the next scan/input
+        # Display the last scanned data (barcode or match)
+        if st.session_state.last_scanned_barcode:
+            st.info(f"🔍 Last scanned barcode: {st.session_state.last_scanned_barcode}")
+
+        # Re-render the barcode input and refocus
         barcode_input_placeholder.text_input("🧪 Scan or type barcode info:", 
                                               value=st.session_state.barcode_input, key="barcode_input")
 
