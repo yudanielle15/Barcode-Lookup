@@ -120,8 +120,14 @@ if uploaded_file:
             # Re-render barcode input with an empty value and refocus
             barcode_input_placeholder.text_input("🧪 Scan or type barcode info:", value="", key="barcode_input")
 
-            # Wait a short time to ensure Streamlit re-renders the widget before refocusing
-            st.experimental_rerun()
+            # Add a little delay to give Streamlit time to update the widget and refocus
+            st.markdown("""
+            <script>
+                setTimeout(function() {
+                    document.getElementById("barcode_input").focus(); // Refocus after clearing
+                }, 100); // Small delay to ensure the widget re-renders before focusing
+            </script>
+            """, unsafe_allow_html=True)
 
         else:
             # If no barcode input yet, render the input widget
