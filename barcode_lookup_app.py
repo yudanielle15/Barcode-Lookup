@@ -118,12 +118,15 @@ if uploaded_file:
                         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                     )
 
-        # --- Clear the barcode input UI after processing ---
+        # --- Reset the barcode input field after processing ---
+        # Clear barcode after each scan and reset session state
         st.session_state.barcode_input = ""  # Reset the barcode input value in session state
+        barcode_input_placeholder.empty()  # Clear the input UI field
 
-        # Re-render barcode input placeholder with an empty value
-        # Adding a "key" here makes it act as if it's a new widget
-        barcode_input_placeholder.text_input("🧪 Scan or type barcode:", value="", key="barcode_input_new")
+        # Re-render the barcode input field to simulate the auto-clear and scan readiness
+        # This is a hack to allow streamlit to correctly process the barcode input again.
+        st.session_state.barcode_input = barcode_input  # Set the last entered barcode back
+        barcode_input_placeholder.text_input("🧪 Scan or type barcode:", value=st.session_state.barcode_input)
 
     except Exception as e:
         st.error(f"❌ Error reading file: {e}")
