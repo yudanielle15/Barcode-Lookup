@@ -32,13 +32,16 @@ if uploaded_file:
         st.subheader("📋 Loaded Table")
         st.dataframe(st.session_state.df)
 
-        # --- Initialize session state to track the input --- 
+        # Initialize session state to track the input
         if 'barcode_input' not in st.session_state:
             st.session_state.barcode_input = ""    
-            
+
         # Create a placeholder for barcode input
         barcode_input_placeholder = st.empty()
         
+        # Get the barcode input from session state
+        barcode_input = st.session_state.barcode_input
+
         if barcode_input:
             df = st.session_state.df
             current_match = df[df['Barcode'].astype(str) == str(barcode_input)]
@@ -101,7 +104,7 @@ if uploaded_file:
                     ws = wb.active
 
                     # Add Scan_Status column if missing
-                    if "Scan_Status" not in [cell.value for cell in ws[1]]:
+                    if "Scan_Status" not in [cell.value for cell in ws[1]]: 
                         ws.cell(row=1, column=ws.max_column + 1, value="Scan_Status")
 
                     # Map headers
