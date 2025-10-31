@@ -129,7 +129,8 @@ if uploaded_file:
         st.markdown("""
             <script>
                 setTimeout(function() {
-                    var barcodeInput = document.getElementById('barcode_input');
+                    // Find the input field using the 'stTextInput' class instead of the ID
+                    var barcodeInput = document.querySelector('.stTextInput input');
                     if (barcodeInput) {
                         barcodeInput.focus();
                     }
@@ -141,4 +142,5 @@ if uploaded_file:
         st.error(f"❌ Error reading file: {e}")
 else:
     st.info("⬆️ Please upload an Excel file to begin.")
+
 
