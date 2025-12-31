@@ -52,7 +52,8 @@ if uploaded_file:
         st.subheader("🧪 Scan / Type Barcodes")
         with st.form(key="scan_form", clear_on_submit=True):
             barcode_input = st.text_input(
-                "Scan or type barcode (press Enter = add):"  # updated placeholder
+                "Scan or type barcode",          # label above
+                placeholder="Press Enter to add" # placeholder inside
             )
             submitted = st.form_submit_button("➕ Add")
             if submitted:
@@ -64,7 +65,6 @@ if uploaded_file:
         # CHIP DISPLAY
         # ---------------------------------
         if st.session_state.barcode_tags:
-            # Display a copy of the barcode list in a multiselect with a separate widget key
             st.multiselect(
                 "Scanned barcodes (click ❌ to remove):",
                 options=st.session_state.barcode_tags.copy(),
@@ -83,12 +83,12 @@ if uploaded_file:
                 barcode_set = set(st.session_state.barcode_tags)
                 df_set = set(df["Barcode"])
                 matched = barcode_set & df_set
-                unmatched = sorted(barcode_set - df_set)  # renamed
+                unmatched = sorted(barcode_set - df_set)
 
                 df.loc[df["Barcode"].isin(matched), "Scan_Status"] = "Matched"
                 st.session_state.df = df
                 st.session_state.matched_df = df[df["Barcode"].isin(matched)]
-                st.session_state.unmatched_barcodes = unmatched  # renamed
+                st.session_state.unmatched_barcodes = unmatched
 
                 st.success(f"✅ {len(matched)} matched | ❌ {len(unmatched)} unmatched")
 
@@ -112,7 +112,7 @@ if uploaded_file:
             )
 
         if st.session_state.unmatched_barcodes:
-            st.subheader("❌ Unmatched Barcodes")  # header updated
+            st.subheader("❌ Unmatched Barcodes")
             st.code("\n".join(st.session_state.unmatched_barcodes))
 
         # ---------------------------------
