@@ -1,7 +1,6 @@
 import streamlit as st
 import pandas as pd
 from io import BytesIO
-import streamlit.components.v1 as components
 
 # -------------------------------
 # Page config
@@ -21,6 +20,8 @@ if "matched_df" not in st.session_state:
     st.session_state.matched_df = pd.DataFrame()
 if "unmatched_barcodes" not in st.session_state:
     st.session_state.unmatched_barcodes = []
+if "barcode_input" not in st.session_state:
+    st.session_state.barcode_input = ""
 
 # -------------------------------
 # Upload Excel
@@ -38,35 +39,23 @@ if uploaded_file and st.session_state.df is None:
     st.success("✅ File loaded. Ready to scan.")
 
 # -------------------------------
-# JavaScript barcode input (auto-add after 1s)
+# Scan / Type Barcode
 # -------------------------------
 st.subheader("🧪 Scan / Type Barcodes")
 
-js_code = """
-<input id="barcode_js" type="text" placeholder="Scan or type barcode" style="width:300px;" autofocus/>
-<script>
-const input = document.getElementById("barcode_js");
-input.addEventListener("change", function(e) {
-    const value = input.value.trim();
-    if(value) {
-        setTimeout(() => {
-            // Find Streamlit input and set its value
-            const st_input = window.parent.document.querySelector('[data-testid="stTextInput"] input');
-            if(st_input) {
-                st_input.value = value;
-                st_input.dispatchEvent(new Event('input', { bubbles: true }));
-            }
-            input.value = "";  // clear JS input
-        }, 1000); // 1 second delay
-    }
-});
-</script>
-"""
-components.html(js_code, height=50)
+barcode_input = st.text_input(
+    "Type or scan barcode",
+    value=st.session_state.barcode_input,
+    key="barcode_input"
+)
 
-# -------------------------------
-# Display scanned barcodes (removable)
-# -------------------------------
+if barcode_input:
+    cleaned = barcode_input.strip()
+    if cleaned and cleaned not in st.session_state.barcode_tags:
+        st.session_state.barcode_tags.append(cleaned)
+    st.session_state.barcode_input = ""  # clear input immediately
+
+# Display scanned barcodes and allow removal
 if st.session_state.barcode_tags:
     selected = st.multiselect(
         "Scanned barcodes (click ❌ to remove):",
@@ -74,16 +63,6 @@ if st.session_state.barcode_tags:
         default=st.session_state.barcode_tags
     )
     st.session_state.barcode_tags = selected
-
-# -------------------------------
-# Add barcode from st.text_input to list
-# -------------------------------
-barcode_input = st.text_input("", key="barcode_input", label_visibility="collapsed")
-if barcode_input:
-    cleaned = barcode_input.strip()
-    if cleaned and cleaned not in st.session_state.barcode_tags:
-        st.session_state.barcode_tags.append(cleaned)
-    st.session_state.barcode_input = ""  # clear input immediately
 
 # -------------------------------
 # Process All Barcodes
