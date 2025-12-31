@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 from io import BytesIO
+import time
 
 # -------------------------------
 # Page config
@@ -22,6 +23,8 @@ if "unmatched_barcodes" not in st.session_state:
     st.session_state.unmatched_barcodes = []
 if "barcode_input" not in st.session_state:
     st.session_state.barcode_input = ""
+if "to_add_queue" not in st.session_state:
+    st.session_state.to_add_queue = []  # queue of barcodes to add with timestamp
 
 # -------------------------------
 # Upload Excel
@@ -39,23 +42,41 @@ if uploaded_file and st.session_state.df is None:
     st.success("✅ File loaded. Ready to scan.")
 
 # -------------------------------
+# Function: schedule barcode add
+# -------------------------------
+def schedule_add():
+    barcode = st.session_state.barcode_input.strip()
+    if barcode:
+        st.session_state.to_add_queue.append((barcode, time.time()))
+        st.session_state.barcode_input = ""  # clear input immediately
+        st.experimental_rerun()  # ensure UI updates
+
+# -------------------------------
 # Scan / Type Barcode
 # -------------------------------
 st.subheader("🧪 Scan / Type Barcodes")
-
-barcode_input = st.text_input(
+st.text_input(
     "Type or scan barcode",
-    value=st.session_state.barcode_input,
-    key="barcode_input"
+    key="barcode_input",
+    on_change=schedule_add
 )
 
-if barcode_input:
-    cleaned = barcode_input.strip()
-    if cleaned and cleaned not in st.session_state.barcode_tags:
-        st.session_state.barcode_tags.append(cleaned)
-    st.session_state.barcode_input = ""  # clear input immediately
+# -------------------------------
+# Process queue: add barcode after 1 second
+# -------------------------------
+current_time = time.time()
+new_queue = []
+for barcode, timestamp in st.session_state.to_add_queue:
+    if current_time - timestamp >= 1:  # 1 second passed
+        if barcode not in st.session_state.barcode_tags:
+            st.session_state.barcode_tags.append(barcode)
+    else:
+        new_queue.append((barcode, timestamp))
+st.session_state.to_add_queue = new_queue
 
-# Display scanned barcodes and allow removal
+# -------------------------------
+# Display scanned barcodes (removable)
+# -------------------------------
 if st.session_state.barcode_tags:
     selected = st.multiselect(
         "Scanned barcodes (click ❌ to remove):",
