@@ -12,7 +12,7 @@ st.set_page_config(
 )
 
 st.title("🔬 Biomarker Sample Barcode Scanner")
-st.write("Scan or type barcodes → they become removable bubbles → process all at once")
+st.write("Scan or type barcodes → press Enter → bubbles appear → process in one click")
 
 # ---------------------------------
 # Session state
@@ -55,15 +55,16 @@ if uploaded_file:
         st.success("✅ File loaded. Ready to scan.")
 
         # ---------------------------------
-        # FORM = SAFE CHIP INPUT
+        # SCAN INPUT (ENTER ONLY)
         # ---------------------------------
         st.subheader("🧪 Scan / Type Barcodes")
 
         with st.form(key="scan_form", clear_on_submit=True):
             barcode_input = st.text_input(
-                "Scan or type barcode (Enter = add):"
+                "Scan or type barcode (Enter to add):",
+                autofocus=True
             )
-            submitted = st.form_submit_button("➕ Add")
+            submitted = st.form_submit_button("Submit")  # hidden UX-wise (Enter triggers it)
 
         if submitted:
             cleaned = barcode_input.strip()
@@ -102,6 +103,9 @@ if uploaded_file:
                 st.session_state.df = df
                 st.session_state.matched_df = df[df["Barcode"].isin(matched)]
                 st.session_state.missing_barcodes = missing
+
+                # ✅ IMPORTANT: clear batch after processing
+                st.session_state.barcode_tags = []
 
                 st.success(f"✅ {len(matched)} matched | ❌ {len(missing)} missing")
 
