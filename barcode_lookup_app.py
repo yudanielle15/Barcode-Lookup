@@ -64,11 +64,12 @@ if uploaded_file:
         # CHIP DISPLAY
         # ---------------------------------
         if st.session_state.barcode_tags:
+            # Display a copy of the barcode list in a multiselect with a separate widget key
             st.multiselect(
                 "Scanned barcodes (click ❌ to remove):",
-                options=st.session_state.barcode_tags,
-                default=st.session_state.barcode_tags,
-                key="barcode_tags_widget"  # <-- different widget key
+                options=st.session_state.barcode_tags.copy(),
+                default=st.session_state.barcode_tags.copy(),
+                key="barcode_tags_widget"
             )
 
         # ---------------------------------
@@ -91,7 +92,7 @@ if uploaded_file:
 
                 st.success(f"✅ {len(matched)} matched | ❌ {len(missing)} missing")
 
-                # --- CLEAR barcodes for next set ---
+                # --- CLEAR the true barcode list for next set ---
                 st.session_state.barcode_tags = []
 
         # ---------------------------------
