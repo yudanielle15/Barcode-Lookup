@@ -23,8 +23,8 @@ if "unmatched_barcodes" not in st.session_state:
     st.session_state.unmatched_barcodes = []
 if "barcode_input" not in st.session_state:
     st.session_state.barcode_input = ""
-if "input_to_add" not in st.session_state:
-    st.session_state.input_to_add = None  # temporary holder for delayed add
+if "to_add_queue" not in st.session_state:
+    st.session_state.to_add_queue = []  # queue of barcodes to add with timestamp
 
 # -------------------------------
 # Upload Excel
@@ -42,17 +42,13 @@ if uploaded_file and st.session_state.df is None:
     st.success("✅ File loaded. Ready to scan.")
 
 # -------------------------------
-# Function: Add barcode after 1s delay
+# Function: schedule barcode add
 # -------------------------------
-def delayed_add():
-    if st.session_state.barcode_input.strip() != "":
-        st.session_state.input_to_add = st.session_state.barcode_input.strip()
-        st.session_state.barcode_input = ""  # clear immediately
-        time.sleep(1)  # wait 1 second
-        if st.session_state.input_to_add not in st.session_state.barcode_tags:
-            st.session_state.barcode_tags.append(st.session_state.input_to_add)
-        st.session_state.input_to_add = None
-        st.experimental_rerun()  # refresh app to show updated list
+def schedule_add():
+    barcode = st.session_state.barcode_input.strip()
+    if barcode:
+        st.session_state.to_add_queue.append((barcode, time.time()))
+        st.session_state.barcode_input = ""  # clear input immediately
 
 # -------------------------------
 # Scan / Type Barcode
@@ -61,17 +57,31 @@ st.subheader("🧪 Scan / Type Barcodes")
 st.text_input(
     "Type or scan barcode",
     key="barcode_input",
-    on_change=delayed_add
+    on_change=schedule_add
 )
 
-# Display scanned barcodes and allow removal
+# -------------------------------
+# Process queue: add barcode after 1 second
+# -------------------------------
+current_time = time.time()
+new_queue = []
+for barcode, timestamp in st.session_state.to_add_queue:
+    if current_time - timestamp >= 1:  # 1 second passed
+        if barcode not in st.session_state.barcode_tags:
+            st.session_state.barcode_tags.append(barcode)
+    else:
+        new_queue.append((barcode, timestamp))
+st.session_state.to_add_queue = new_queue
+
+# -------------------------------
+# Display scanned barcodes (removable)
+# -------------------------------
 if st.session_state.barcode_tags:
     selected = st.multiselect(
         "Scanned barcodes (click ❌ to remove):",
         options=st.session_state.barcode_tags,
         default=st.session_state.barcode_tags
     )
-    # Sync session state
     st.session_state.barcode_tags = selected
 
 # -------------------------------
