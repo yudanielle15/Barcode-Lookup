@@ -20,9 +20,6 @@ st.write("Scan or type barcodes → they become removable bubbles → process al
 if "df" not in st.session_state:
     st.session_state.df = None
 
-if "barcode_buffer" not in st.session_state:
-    st.session_state.barcode_buffer = ""
-
 if "barcode_tags" not in st.session_state:
     st.session_state.barcode_tags = []
 
@@ -33,16 +30,7 @@ if "missing_barcodes" not in st.session_state:
     st.session_state.missing_barcodes = []
 
 # ---------------------------------
-# Callback: add barcode as chip
-# ---------------------------------
-def commit_barcode():
-    value = st.session_state.barcode_buffer.strip()
-    if value and value not in st.session_state.barcode_tags:
-        st.session_state.barcode_tags.append(value)
-    st.session_state.barcode_buffer = ""  # safe INSIDE callback
-
-# ---------------------------------
-# Upload file
+# Upload Excel
 # ---------------------------------
 uploaded_file = st.file_uploader(
     "📁 Upload your sample Excel file",
@@ -67,24 +55,23 @@ if uploaded_file:
         st.success("✅ File loaded. Ready to scan.")
 
         # ---------------------------------
-        # CHIP INPUT
+        # FORM = SAFE CHIP INPUT
         # ---------------------------------
         st.subheader("🧪 Scan / Type Barcodes")
 
-        col1, col2 = st.columns([4, 1])
-
-        with col1:
-            st.text_input(
-                "Scan or type barcode (Enter = add):",
-                key="barcode_buffer",
-                on_change=commit_barcode
+        with st.form(key="scan_form", clear_on_submit=True):
+            barcode_input = st.text_input(
+                "Scan or type barcode (Enter = add):"
             )
+            submitted = st.form_submit_button("➕ Add")
 
-        with col2:
-            st.button("➕ Add", on_click=commit_barcode)
+        if submitted:
+            cleaned = barcode_input.strip()
+            if cleaned and cleaned not in st.session_state.barcode_tags:
+                st.session_state.barcode_tags.append(cleaned)
 
         # ---------------------------------
-        # CHIP DISPLAY (bubbles)
+        # CHIP DISPLAY
         # ---------------------------------
         if st.session_state.barcode_tags:
             st.multiselect(
