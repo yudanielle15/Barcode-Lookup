@@ -1,32 +1,30 @@
 import streamlit as st
-from streamlit_js_eval import st_javascript
 import pandas as pd
 from io import BytesIO
 from openpyxl import load_workbook
-import time
 
 st.set_page_config(page_title="Biomarker Barcode Scanner", layout="centered")
 st.title("🔬 Biomarker Sample Barcode Scanner")
-st.write("Scan or paste barcodes — they get added automatically!")
+st.write("Scan or paste barcodes → they become removable bubbles → process all at once")
 
-# -------------------
-# Session state init
-# -------------------
+# -------------------------------
+# Session state
+# -------------------------------
 if "df" not in st.session_state:
     st.session_state.df = None
 if "barcode_tags" not in st.session_state:
     st.session_state.barcode_tags = []
-if "incoming_barcode" not in st.session_state:
-    st.session_state.incoming_barcode = ""
+if "barcode_input_area" not in st.session_state:
+    st.session_state.barcode_input_area = ""
 if "matched_df" not in st.session_state:
     st.session_state.matched_df = pd.DataFrame()
 if "unmatched_barcodes" not in st.session_state:
     st.session_state.unmatched_barcodes = []
 
-# -------------------
-# Load Excel
-# -------------------
-uploaded_file = st.file_uploader("📁 Upload your sample Excel (.xlsx)", type="xlsx")
+# -------------------------------
+# Upload Excel
+# -------------------------------
+uploaded_file = st.file_uploader("📁 Upload your sample Excel file", type=["xlsx"])
 
 if uploaded_file:
     if st.session_state.df is None:
@@ -38,38 +36,46 @@ if uploaded_file:
             df["Scan_Status"] = ""
         df["Barcode"] = df["Barcode"].astype(str)
         st.session_state.df = df
-        st.success("✅ File loaded. Ready to scan!")
+        st.success("✅ File loaded. Ready to scan.")
 
-    st.subheader("🧪 Continuous Barcode Scanner")
+    # -------------------------------
+    # Continuous Scan / Paste
+    # -------------------------------
+    st.subheader("🧪 Scan / Paste Barcodes (continuous)")
 
-    # Run JS code in browser to read input
-    script = """
-    (() => {
-        const existing = window.latestStreamlitBarcode || "";
-        const next = window.prompt("Scan or paste here:", "");
-        window.latestStreamlitBarcode = next;
-        return next;
-    })();
-    """
-    barcode = st_javascript(js_expressions=script, key="scan_input")
+    # Text area for multiple barcodes
+    input_area = st.text_area(
+        "Scan or paste barcodes here (one per line)",
+        value=st.session_state.barcode_input_area,
+        height=100
+    )
 
-    # Add barcode if valid
-    if barcode:
-        cleaned = barcode.strip()
-        if cleaned not in st.session_state.barcode_tags:
-            st.session_state.barcode_tags.append(cleaned)
+    # Add barcodes on button click
+    if st.button("➕ Add Barcodes"):
+        if input_area:
+            lines = input_area.splitlines()
+            for line in lines:
+                cleaned = line.strip()
+                if cleaned and cleaned not in st.session_state.barcode_tags:
+                    st.session_state.barcode_tags.append(cleaned)
+            st.session_state.barcode_input_area = ""  # clear textarea
+            st.experimental_rerun()
 
-    # Show tags as removable buttons
+    # -------------------------------
+    # Display scanned barcodes as removable bubbles
+    # -------------------------------
     if st.session_state.barcode_tags:
-        st.write("Scanned barcodes:")
+        st.write("Scanned barcodes (click ❌ to remove):")
         cols = st.columns(5)
-        for i, tag in enumerate(st.session_state.barcode_tags):
+        for i, barcode in enumerate(st.session_state.barcode_tags):
             with cols[i % 5]:
-                if st.button(f"❌ {tag}", key=f"remove_{tag}"):
-                    st.session_state.barcode_tags.remove(tag)
+                if st.button(f"❌ {barcode}", key=f"remove_{barcode}"):
+                    st.session_state.barcode_tags.remove(barcode)
                     st.experimental_rerun()
 
-    # Process all
+    # -------------------------------
+    # Process All Barcodes
+    # -------------------------------
     if st.button("🚀 Process All Barcodes", use_container_width=True):
         barcode_set = set(st.session_state.barcode_tags)
         df_set = set(st.session_state.df["Barcode"])
@@ -83,7 +89,9 @@ if uploaded_file:
         st.success(f"✅ {len(matched)} matched | ❌ {len(unmatched)} unmatched")
         st.session_state.barcode_tags = []
 
+    # -------------------------------
     # Show results
+    # -------------------------------
     if not st.session_state.matched_df.empty:
         st.subheader("🔹 Matched Samples")
         st.dataframe(st.session_state.matched_df, use_container_width=True)
@@ -92,7 +100,9 @@ if uploaded_file:
         st.subheader("❌ Unmatched Barcodes")
         st.code("\n".join(st.session_state.unmatched_barcodes))
 
+    # -------------------------------
     # Download updated Excel
+    # -------------------------------
     original_filename = uploaded_file.name
     new_filename = original_filename.replace(".xlsx", "_Scanned.xlsx")
     uploaded_file.seek(0)
@@ -115,8 +125,8 @@ if uploaded_file:
         buffer,
         file_name=new_filename,
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        use_container_width=True,
+        use_container_width=True
     )
 
 else:
-    st.info("⬆️ Upload your Excel file to begin.")
+    st.info("⬆️ Upload an Excel file to begin.")
