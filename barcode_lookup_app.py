@@ -12,7 +12,7 @@ st.set_page_config(
 )
 
 st.title("🔬 Biomarker Sample Barcode Scanner")
-st.write("Scan or type barcodes → press Enter → bubbles appear → process in one click")
+st.write("Scan or type barcodes → they become removable bubbles → process all at once")
 
 # ---------------------------------
 # Session state
@@ -55,23 +55,31 @@ if uploaded_file:
         st.success("✅ File loaded. Ready to scan.")
 
         # ---------------------------------
-        # SCAN INPUT (ENTER ONLY)
+        # START NEW SET
+        # ---------------------------------
+        if st.button("🆕 Start New Set"):
+            st.session_state.barcode_tags = []
+            st.session_state.matched_df = pd.DataFrame()
+            st.session_state.missing_barcodes = []
+
+        # ---------------------------------
+        # SCAN / TYPE BARCODES
         # ---------------------------------
         st.subheader("🧪 Scan / Type Barcodes")
 
-        with st.form(key="scan_form", clear_on_submit=True):
-            barcode_input = st.text_input(
-                "Scan or type barcode (Enter to add):"
-            )
-            submitted = st.form_submit_button("Submit")  # Enter triggers this
+        barcode_input = st.text_input(
+            "Scan or type barcode (Enter = add):",
+            key="barcode_input"
+        )
 
-        if submitted:
+        if barcode_input:
             cleaned = barcode_input.strip()
             if cleaned and cleaned not in st.session_state.barcode_tags:
                 st.session_state.barcode_tags.append(cleaned)
+            st.session_state.barcode_input = ""  # Clear input after Enter
 
         # ---------------------------------
-        # CHIP DISPLAY
+        # DISPLAY SCANNED BARCODES
         # ---------------------------------
         if st.session_state.barcode_tags:
             st.multiselect(
@@ -82,7 +90,7 @@ if uploaded_file:
             )
 
         # ---------------------------------
-        # PROCESS BUTTON
+        # PROCESS ALL BARCODES
         # ---------------------------------
         if st.button("🚀 Process All Barcodes", use_container_width=True):
 
@@ -102,9 +110,6 @@ if uploaded_file:
                 st.session_state.df = df
                 st.session_state.matched_df = df[df["Barcode"].isin(matched)]
                 st.session_state.missing_barcodes = missing
-
-                # Clear batch after processing (prevents carry-over bug)
-                st.session_state.barcode_tags = []
 
                 st.success(f"✅ {len(matched)} matched | ❌ {len(missing)} missing")
 
