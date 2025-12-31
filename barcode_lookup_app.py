@@ -12,17 +12,19 @@ st.write("Scan or type barcodes → they become removable bubbles → process al
 st.divider()
 
 # -------------------------------
-# Session state initialization
+# Initialize session state
 # -------------------------------
-for key, default in {
+defaults = {
     "df": None,
     "barcode_tags": [],
     "matched_df": pd.DataFrame(),
     "unmatched_barcodes": [],
     "barcode_input": ""
-}.items():
+}
+
+for key, value in defaults.items():
     if key not in st.session_state:
-        st.session_state[key] = default
+        st.session_state[key] = value
 
 # -------------------------------
 # Upload Excel
@@ -33,15 +35,14 @@ if uploaded_file and st.session_state.df is None:
     if "Barcode" not in df.columns:
         st.error("❌ Excel must contain a 'Barcode' column.")
         st.stop()
-    if "Scan_Status" not in df.columns:
-        df["Scan_Status"] = ""
+    df["Scan_Status"] = df.get("Scan_Status", "")
     df["Barcode"] = df["Barcode"].astype(str)
     st.session_state.df = df
     st.success("✅ File loaded. Ready to scan.")
 st.divider()
 
 # -------------------------------
-# Barcode input: add instantly
+# Barcode input
 # -------------------------------
 st.subheader("🧪 Scan / Type Barcodes")
 
@@ -49,7 +50,7 @@ def add_barcode():
     barcode = st.session_state.barcode_input.strip()
     if barcode and barcode not in st.session_state.barcode_tags:
         st.session_state.barcode_tags.append(barcode)
-    st.session_state.barcode_input = ""  # clear input
+    st.session_state.barcode_input = ""
 
 st.text_input("Type or scan barcode", key="barcode_input", on_change=add_barcode)
 
@@ -67,7 +68,7 @@ if st.session_state.barcode_tags:
 st.divider()
 
 # -------------------------------
-# Process All Barcodes
+# Process all barcodes
 # -------------------------------
 if st.button("🚀 Process All Barcodes", use_container_width=True):
     if st.session_state.df is None:
@@ -82,9 +83,9 @@ if st.button("🚀 Process All Barcodes", use_container_width=True):
         st.session_state.df.loc[st.session_state.df["Barcode"].isin(matched), "Scan_Status"] = "Matched"
         st.session_state.matched_df = st.session_state.df[st.session_state.df["Barcode"].isin(matched)]
         st.session_state.unmatched_barcodes = unmatched
+        st.session_state.barcode_tags = []
 
         st.success(f"✅ {len(matched)} matched | ❌ {len(unmatched)} unmatched")
-        st.session_state.barcode_tags = []
 
 st.divider()
 
@@ -111,9 +112,7 @@ st.divider()
 # Download updated Excel
 # -------------------------------
 if uploaded_file and st.session_state.df is not None:
-    original_filename = Path(uploaded_file.name)
-    new_filename = original_filename.stem + "_Scanned.xlsx"
-
+    new_filename = Path(uploaded_file.name).stem + "_Scanned.xlsx"
     buffer = BytesIO()
     with pd.ExcelWriter(buffer, engine="openpyxl") as writer:
         st.session_state.df.to_excel(writer, index=False, sheet_name="Sheet1")
@@ -128,4 +127,3 @@ if uploaded_file and st.session_state.df is not None:
     )
 else:
     st.info("⬆️ Upload an Excel file to begin.")
-
