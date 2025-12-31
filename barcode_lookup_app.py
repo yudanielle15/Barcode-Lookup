@@ -47,22 +47,19 @@ if uploaded_file:
             st.success("✅ File loaded. Ready to scan.")
 
         # ---------------------------------
-        # SCAN / TYPE BARCODES (Automatic Enter)
+        # SCAN / TYPE BARCODES (Form-based Enter)
         # ---------------------------------
         st.subheader("🧪 Scan / Type Barcodes")
-
-        def add_barcode():
-            cleaned = st.session_state.barcode_input.strip()
-            if cleaned and cleaned not in st.session_state.barcode_tags:
-                st.session_state.barcode_tags.append(cleaned)
-            st.session_state.barcode_input = ""  # clear input after adding
-
-        st.text_input(
-            "Scan or type barcode",
-            key="barcode_input",
-            placeholder="Press Enter to add",
-            on_change=add_barcode
-        )
+        with st.form(key="scan_form", clear_on_submit=True):
+            barcode_input = st.text_input(
+                "Scan or type barcode",
+                placeholder="Press Enter to add"
+            )
+            submitted = st.form_submit_button("➕ Add")
+            if submitted:
+                cleaned = barcode_input.strip()
+                if cleaned and cleaned not in st.session_state.barcode_tags:
+                    st.session_state.barcode_tags.append(cleaned)
 
         # ---------------------------------
         # CHIP DISPLAY
