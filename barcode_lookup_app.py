@@ -33,10 +33,19 @@ if "missing_barcodes" not in st.session_state:
     st.session_state.missing_barcodes = []
 
 # ---------------------------------
+# Callback: add barcode as chip
+# ---------------------------------
+def commit_barcode():
+    value = st.session_state.barcode_buffer.strip()
+    if value and value not in st.session_state.barcode_tags:
+        st.session_state.barcode_tags.append(value)
+    st.session_state.barcode_buffer = ""  # safe INSIDE callback
+
+# ---------------------------------
 # Upload file
 # ---------------------------------
 uploaded_file = st.file_uploader(
-    "📁 Upload your Excel file",
+    "📁 Upload your sample Excel file",
     type=["xlsx"]
 )
 
@@ -58,32 +67,24 @@ if uploaded_file:
         st.success("✅ File loaded. Ready to scan.")
 
         # ---------------------------------
-        # CHIP INPUT (scanner + manual)
+        # CHIP INPUT
         # ---------------------------------
         st.subheader("🧪 Scan / Type Barcodes")
 
         col1, col2 = st.columns([4, 1])
 
         with col1:
-            barcode_input = st.text_input(
+            st.text_input(
                 "Scan or type barcode (Enter = add):",
-                key="barcode_buffer"
+                key="barcode_buffer",
+                on_change=commit_barcode
             )
 
         with col2:
-            add_clicked = st.button("➕ Add")
-
-        # Add barcode (scanner Enter OR manual button)
-        if (barcode_input and (add_clicked or barcode_input.endswith("\n") is False)):
-            cleaned = barcode_input.strip()
-
-            if cleaned and cleaned not in st.session_state.barcode_tags:
-                st.session_state.barcode_tags.append(cleaned)
-
-            st.session_state.barcode_buffer = ""
+            st.button("➕ Add", on_click=commit_barcode)
 
         # ---------------------------------
-        # CHIP DISPLAY (bubbles with ❌)
+        # CHIP DISPLAY (bubbles)
         # ---------------------------------
         if st.session_state.barcode_tags:
             st.multiselect(
@@ -96,30 +97,26 @@ if uploaded_file:
         # ---------------------------------
         # PROCESS BUTTON
         # ---------------------------------
-        process_clicked = st.button(
-            "🚀 Process All Barcodes",
-            use_container_width=True
-        )
+        if st.button("🚀 Process All Barcodes", use_container_width=True):
 
-        if process_clicked and st.session_state.barcode_tags:
-            df = st.session_state.df.copy()
+            if not st.session_state.barcode_tags:
+                st.warning("⚠️ No barcodes to process.")
+            else:
+                df = st.session_state.df.copy()
 
-            barcode_set = set(st.session_state.barcode_tags)
-            df_set = set(df["Barcode"])
+                barcode_set = set(st.session_state.barcode_tags)
+                df_set = set(df["Barcode"])
 
-            matched = barcode_set & df_set
-            missing = sorted(barcode_set - df_set)
+                matched = barcode_set & df_set
+                missing = sorted(barcode_set - df_set)
 
-            df.loc[df["Barcode"].isin(matched), "Scan_Status"] = "Matched"
+                df.loc[df["Barcode"].isin(matched), "Scan_Status"] = "Matched"
 
-            st.session_state.df = df
-            st.session_state.matched_df = df[df["Barcode"].isin(matched)]
-            st.session_state.missing_barcodes = missing
+                st.session_state.df = df
+                st.session_state.matched_df = df[df["Barcode"].isin(matched)]
+                st.session_state.missing_barcodes = missing
 
-            st.success(f"✅ {len(matched)} matched | ❌ {len(missing)} missing")
-
-            # Optional: clear chips after processing
-            # st.session_state.barcode_tags = []
+                st.success(f"✅ {len(matched)} matched | ❌ {len(missing)} missing")
 
         # ---------------------------------
         # RESULTS
@@ -146,34 +143,33 @@ if uploaded_file:
         # ---------------------------------
         # DOWNLOAD UPDATED EXCEL
         # ---------------------------------
-        if st.session_state.df is not None:
-            original_filename = uploaded_file.name
-            new_filename = original_filename.replace(".xlsx", "_Scanned.xlsx")
+        original_filename = uploaded_file.name
+        new_filename = original_filename.replace(".xlsx", "_Scanned.xlsx")
 
-            uploaded_file.seek(0)
-            wb = load_workbook(uploaded_file)
-            ws = wb.active
+        uploaded_file.seek(0)
+        wb = load_workbook(uploaded_file)
+        ws = wb.active
 
-            headers = [cell.value for cell in ws[1]]
-            if "Scan_Status" not in headers:
-                ws.cell(row=1, column=ws.max_column + 1, value="Scan_Status")
+        headers = [cell.value for cell in ws[1]]
+        if "Scan_Status" not in headers:
+            ws.cell(row=1, column=ws.max_column + 1, value="Scan_Status")
 
-            header_map = {cell.value: i + 1 for i, cell in enumerate(ws[1])}
+        header_map = {cell.value: i + 1 for i, cell in enumerate(ws[1])}
 
-            for i, val in enumerate(st.session_state.df["Scan_Status"], start=2):
-                ws.cell(row=i, column=header_map["Scan_Status"], value=val)
+        for i, val in enumerate(st.session_state.df["Scan_Status"], start=2):
+            ws.cell(row=i, column=header_map["Scan_Status"], value=val)
 
-            buffer = BytesIO()
-            wb.save(buffer)
-            buffer.seek(0)
+        buffer = BytesIO()
+        wb.save(buffer)
+        buffer.seek(0)
 
-            st.download_button(
-                "💾 Download Updated Excel",
-                buffer,
-                file_name=new_filename,
-                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                use_container_width=True
-            )
+        st.download_button(
+            "💾 Download Updated Excel",
+            buffer,
+            file_name=new_filename,
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            use_container_width=True
+        )
 
     except Exception as e:
         st.error(f"❌ Error: {e}")
