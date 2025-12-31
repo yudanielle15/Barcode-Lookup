@@ -8,7 +8,9 @@ st.set_page_config(page_title="Biomarker Barcode Scanner", layout="centered")
 st.title("🔬 Biomarker Sample Barcode Scanner")
 st.write("Scan or type barcodes → they become removable bubbles → process all at once")
 
-# Session state
+# -------------------------------
+# Session state initialization
+# -------------------------------
 if "df" not in st.session_state:
     st.session_state.df = None
 if "barcode_tags" not in st.session_state:
@@ -22,7 +24,9 @@ if "matched_df" not in st.session_state:
 if "unmatched_barcodes" not in st.session_state:
     st.session_state.unmatched_barcodes = []
 
+# -------------------------------
 # Upload Excel
+# -------------------------------
 uploaded_file = st.file_uploader("📁 Upload your sample Excel file", type=["xlsx"])
 
 if uploaded_file:
@@ -38,38 +42,40 @@ if uploaded_file:
         st.success("✅ File loaded. Ready to scan.")
 
     # -------------------------------
-    # Auto-add barcode input
+    # Scan / Type Barcodes
     # -------------------------------
     st.subheader("🧪 Scan / Type Barcodes")
 
-    input_val = st.text_input(
-        "Type or scan barcode",
-        key="input_box"
-    )
+    # Input box
+    input_val = st.text_input("Type or scan barcode", value=st.session_state.barcode_input, key="input_box")
 
-    # Track last input and time
+    # Update session state on input change
     if input_val != st.session_state.barcode_input:
         st.session_state.barcode_input = input_val
         st.session_state.last_input_time = time.time()
 
-    # If 1 second has passed since last input, add to list
-    if st.session_state.barcode_input and (time.time() - st.session_state.last_input_time > 1):
-        cleaned = st.session_state.barcode_input.strip()
-        if cleaned and cleaned not in st.session_state.barcode_tags:
-            st.session_state.barcode_tags.append(cleaned)
-        st.session_state.barcode_input = ""
-        st.experimental_rerun()
+    # Auto-add after 1 second of inactivity
+    if st.session_state.barcode_input:
+        if time.time() - st.session_state.last_input_time > 1:
+            cleaned = st.session_state.barcode_input.strip()
+            if cleaned and cleaned not in st.session_state.barcode_tags:
+                st.session_state.barcode_tags.append(cleaned)
+            # Clear input field
+            st.session_state.barcode_input = ""
+            # Rerun to update bubbles
+            st.experimental_rerun()
 
     # -------------------------------
-    # Display scanned barcodes
+    # Display scanned barcodes as removable "bubbles"
     # -------------------------------
     if st.session_state.barcode_tags:
-        st.multiselect(
-            "Scanned barcodes (click ❌ to remove):",
-            options=st.session_state.barcode_tags.copy(),
-            default=st.session_state.barcode_tags.copy(),
-            key="barcode_tags_widget"
-        )
+        st.write("Scanned barcodes (click ❌ to remove):")
+        cols = st.columns(len(st.session_state.barcode_tags))
+        for i, barcode in enumerate(st.session_state.barcode_tags):
+            with cols[i % 5]:  # max 5 per row
+                if st.button(f"❌ {barcode}", key=f"remove_{barcode}"):
+                    st.session_state.barcode_tags.remove(barcode)
+                    st.experimental_rerun()
 
     # -------------------------------
     # Process All Barcodes
