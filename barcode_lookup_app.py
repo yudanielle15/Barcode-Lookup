@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 from io import BytesIO
+import time
 
 # -------------------------------
 # Page config
@@ -20,38 +21,47 @@ if "matched_df" not in st.session_state:
     st.session_state.matched_df = pd.DataFrame()
 if "unmatched_barcodes" not in st.session_state:
     st.session_state.unmatched_barcodes = []
+if "barcode_input" not in st.session_state:
+    st.session_state.barcode_input = ""
+if "input_to_add" not in st.session_state:
+    st.session_state.input_to_add = None  # temporary holder for delayed add
 
 # -------------------------------
 # Upload Excel
 # -------------------------------
 uploaded_file = st.file_uploader("📁 Upload your sample Excel file", type=["xlsx"])
-if uploaded_file:
-    if st.session_state.df is None:
-        df = pd.read_excel(uploaded_file)
-        if "Barcode" not in df.columns:
-            st.error("❌ Excel must contain a 'Barcode' column.")
-            st.stop()
-        if "Scan_Status" not in df.columns:
-            df["Scan_Status"] = ""
-        df["Barcode"] = df["Barcode"].astype(str)
-        st.session_state.df = df
-        st.success("✅ File loaded. Ready to scan.")
+if uploaded_file and st.session_state.df is None:
+    df = pd.read_excel(uploaded_file)
+    if "Barcode" not in df.columns:
+        st.error("❌ Excel must contain a 'Barcode' column.")
+        st.stop()
+    if "Scan_Status" not in df.columns:
+        df["Scan_Status"] = ""
+    df["Barcode"] = df["Barcode"].astype(str)
+    st.session_state.df = df
+    st.success("✅ File loaded. Ready to scan.")
 
 # -------------------------------
-# Scan / Type Barcodes
+# Function: Add barcode after 1s delay
+# -------------------------------
+def delayed_add():
+    if st.session_state.barcode_input.strip() != "":
+        st.session_state.input_to_add = st.session_state.barcode_input.strip()
+        st.session_state.barcode_input = ""  # clear immediately
+        time.sleep(1)  # wait 1 second
+        if st.session_state.input_to_add not in st.session_state.barcode_tags:
+            st.session_state.barcode_tags.append(st.session_state.input_to_add)
+        st.session_state.input_to_add = None
+        st.experimental_rerun()  # refresh app to show updated list
+
+# -------------------------------
+# Scan / Type Barcode
 # -------------------------------
 st.subheader("🧪 Scan / Type Barcodes")
-
-def add_barcode():
-    cleaned = st.session_state.barcode_input.strip()
-    if cleaned and cleaned not in st.session_state.barcode_tags:
-        st.session_state.barcode_tags.append(cleaned)
-    st.session_state.barcode_input = ""
-
 st.text_input(
     "Type or scan barcode",
     key="barcode_input",
-    on_change=add_barcode
+    on_change=delayed_add
 )
 
 # Display scanned barcodes and allow removal
