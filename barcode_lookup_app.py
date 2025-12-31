@@ -91,8 +91,8 @@ if uploaded_file:
 
                 st.success(f"✅ {len(matched)} matched | ❌ {len(missing)} missing")
 
-                # --- CLEAR barcode_tags for next set ---
-                st.session_state.barcode_tags = []
+                # --- CLEAR barcode_tags in-place for next set ---
+                st.session_state.barcode_tags.clear()
 
         # ---------------------------------
         # RESULTS
