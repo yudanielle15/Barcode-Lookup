@@ -1,5 +1,3 @@
 streamlit
 pandas
 openpyxl
-streamlit_js_eval
-
