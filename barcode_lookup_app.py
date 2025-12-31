@@ -3,22 +3,22 @@ import pandas as pd
 from io import BytesIO
 from openpyxl import load_workbook
 
+# ---------------------------
+# Page setup
+# ---------------------------
 st.set_page_config(
     page_title="Biomarker Sample Barcode Lookup Web App",
     layout="centered"
 )
 
 st.title("🔬 Biomarker Sample Barcode Lookup Web App")
-st.write("Upload your Excel file, continuously scan barcodes, then process them together.")
+st.write("Upload your Excel file, enter multiple barcodes, then process them together.")
 
 # ---------------------------
-# Session state init
+# Session state initialization
 # ---------------------------
 if "df" not in st.session_state:
     st.session_state.df = None
-
-if "scanned_barcodes" not in st.session_state:
-    st.session_state.scanned_barcodes = ""
 
 # ---------------------------
 # File upload
@@ -30,32 +30,39 @@ uploaded_file = st.file_uploader(
 
 if uploaded_file:
     try:
+        # Load Excel once
         if st.session_state.df is None:
             df = pd.read_excel(uploaded_file)
             if "Scan_Status" not in df.columns:
                 df["Scan_Status"] = ""
             st.session_state.df = df
 
-        st.success("✅ File loaded. Ready for continuous scanning.")
+        st.success("✅ File loaded successfully.")
 
         # ---------------------------
-        # Barcode input (continuous)
+        # Display loaded table
         # ---------------------------
-        st.subheader("🧪 Continuous Barcode Scanning")
+        st.subheader("📋 Loaded Table")
+        st.dataframe(st.session_state.df)
+
+        # ---------------------------
+        # Barcode input (manual / continuous)
+        # ---------------------------
+        st.subheader("🧪 Barcode Input")
 
         st.info(
-            "Scan barcodes continuously. Each scan should appear on a new line. "
-            "When finished, click **Process All Barcodes**."
+            "Enter barcodes separated by **new lines or commas**.\n\n"
+            "Example:\n"
+            "ABC123\nDEF456\nGHI789\n\n"
+            "or\n\n"
+            "ABC123, DEF456, GHI789"
         )
 
         barcode_text = st.text_area(
-            "Scanned barcodes (one per line):",
-            value=st.session_state.scanned_barcodes,
-            height=200,
-            placeholder="Scan barcode here...\nNext scan appears on a new line"
+            "Barcodes:",
+            height=180,
+            placeholder="ABC123\nDEF456\nGHI789"
         )
-
-        st.session_state.scanned_barcodes = barcode_text
 
         # ---------------------------
         # Process button
@@ -63,29 +70,26 @@ if uploaded_file:
         if st.button("▶️ Process All Barcodes"):
             df = st.session_state.df
 
+            # Normalize separators (comma OR newline)
             barcodes = [
                 b.strip()
-                for b in barcode_text.splitlines()
+                for b in barcode_text.replace(",", "\n").splitlines()
                 if b.strip()
             ]
 
             if not barcodes:
-                st.warning("⚠️ No barcodes to process.")
+                st.warning("⚠️ Please enter at least one barcode.")
             else:
-                found = []
+                matched = []
                 not_found = []
-                duplicates = set()
 
-                for b in barcodes:
-                    matches = df['Barcode'].astype(str) == str(b)
+                for barcode in barcodes:
+                    matches = df["Barcode"].astype(str) == barcode
                     if matches.any():
-                        if df.loc[matches, 'Scan_Status'].eq("Matched").any():
-                            duplicates.add(b)
-                        else:
-                            df.loc[matches, 'Scan_Status'] = "Matched"
-                            found.append(b)
+                        df.loc[matches, "Scan_Status"] = "Matched"
+                        matched.append(barcode)
                     else:
-                        not_found.append(b)
+                        not_found.append(barcode)
 
                 st.session_state.df = df
 
@@ -94,20 +98,18 @@ if uploaded_file:
                 # ---------------------------
                 st.subheader("📊 Scan Results")
 
-                if found:
-                    st.success(f"✅ Matched ({len(found)}): {', '.join(found)}")
-
-                if duplicates:
-                    st.warning(f"🔁 Already scanned: {', '.join(sorted(duplicates))}")
+                if matched:
+                    st.success(
+                        f"✅ Matched ({len(matched)}): {', '.join(matched)}"
+                    )
 
                 if not_found:
-                    st.error(f"❌ Not found ({len(not_found)}): {', '.join(not_found)}")
-
-                # Clear input AFTER processing
-                st.session_state.scanned_barcodes = ""
+                    st.error(
+                        f"❌ Not found ({len(not_found)}): {', '.join(not_found)}"
+                    )
 
         # ---------------------------
-        # Display updated table
+        # Updated table
         # ---------------------------
         st.subheader("📋 Updated Table")
         st.dataframe(st.session_state.df)
@@ -115,7 +117,7 @@ if uploaded_file:
         # ---------------------------
         # Download updated Excel
         # ---------------------------
-        st.subheader("💾 Download")
+        st.subheader("💾 Download Updated Excel")
 
         original_filename = uploaded_file.name
         new_filename = original_filename.replace(".xlsx", "_Scanned.xlsx")
@@ -124,20 +126,34 @@ if uploaded_file:
         wb = load_workbook(uploaded_file)
         ws = wb.active
 
+        # Ensure Scan_Status column exists
         if "Scan_Status" not in [cell.value for cell in ws[1]]:
-            ws.cell(row=1, column=ws.max_column + 1, value="Scan_Status")
+            ws.cell(
+                row=1,
+                column=ws.max_column + 1,
+                value="Scan_Status"
+            )
 
-        header = {cell.value: idx + 1 for idx, cell in enumerate(ws[1])}
+        header_map = {
+            cell.value: idx + 1
+            for idx, cell in enumerate(ws[1])
+        }
 
-        for i, val in enumerate(st.session_state.df["Scan_Status"], start=2):
-            ws.cell(row=i, column=header["Scan_Status"], value=val)
+        for i, val in enumerate(
+            st.session_state.df["Scan_Status"], start=2
+        ):
+            ws.cell(
+                row=i,
+                column=header_map["Scan_Status"],
+                value=val
+            )
 
         buffer = BytesIO()
         wb.save(buffer)
         buffer.seek(0)
 
         st.download_button(
-            "⬇️ Download Updated Excel File",
+            label="⬇️ Download Updated Excel File",
             data=buffer,
             file_name=new_filename,
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
