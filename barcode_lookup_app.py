@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 from io import BytesIO
+from pathlib import Path
 import time
 
 # -------------------------------
@@ -9,22 +10,21 @@ import time
 st.set_page_config(page_title="Biomarker Barcode Scanner", layout="centered")
 st.title("🔬 Biomarker Sample Barcode Scanner")
 st.write("Scan or type barcodes → they become removable bubbles → process all at once")
+st.divider()
 
 # -------------------------------
 # Session state initialization
 # -------------------------------
-if "df" not in st.session_state:
-    st.session_state.df = None
-if "barcode_tags" not in st.session_state:
-    st.session_state.barcode_tags = []
-if "matched_df" not in st.session_state:
-    st.session_state.matched_df = pd.DataFrame()
-if "unmatched_barcodes" not in st.session_state:
-    st.session_state.unmatched_barcodes = []
-if "barcode_input" not in st.session_state:
-    st.session_state.barcode_input = ""
-if "to_add_queue" not in st.session_state:
-    st.session_state.to_add_queue = []  # queue of barcodes to add with timestamp
+for key, default in {
+    "df": None,
+    "barcode_tags": [],
+    "matched_df": pd.DataFrame(),
+    "unmatched_barcodes": [],
+    "barcode_input": "",
+    "to_add_queue": []
+}.items():
+    if key not in st.session_state:
+        st.session_state[key] = default
 
 # -------------------------------
 # Upload Excel
@@ -40,39 +40,39 @@ if uploaded_file and st.session_state.df is None:
     df["Barcode"] = df["Barcode"].astype(str)
     st.session_state.df = df
     st.success("✅ File loaded. Ready to scan.")
+st.divider()
 
 # -------------------------------
-# Function: schedule barcode add
+# Functions
 # -------------------------------
 def schedule_add():
     barcode = st.session_state.barcode_input.strip()
     if barcode:
         st.session_state.to_add_queue.append((barcode, time.time()))
-        st.session_state.barcode_input = ""  # clear input immediately
-        st.experimental_rerun()  # ensure UI updates
+        st.session_state.barcode_input = ""
+
+def process_queue():
+    current_time = time.time()
+    new_queue = []
+    for barcode, timestamp in st.session_state.to_add_queue:
+        if current_time - timestamp >= 1:  # 1 second passed
+            if barcode not in st.session_state.barcode_tags:
+                st.session_state.barcode_tags.append(barcode)
+        else:
+            new_queue.append((barcode, timestamp))
+    st.session_state.to_add_queue = new_queue
+
+def highlight_rows(df):
+    return ["background-color: yellow" if col in ["Screen ID", "Visit", "Sample Name"] else "" for col in df.index]
+
+st.divider()
 
 # -------------------------------
 # Scan / Type Barcode
 # -------------------------------
 st.subheader("🧪 Scan / Type Barcodes")
-st.text_input(
-    "Type or scan barcode",
-    key="barcode_input",
-    on_change=schedule_add
-)
-
-# -------------------------------
-# Process queue: add barcode after 1 second
-# -------------------------------
-current_time = time.time()
-new_queue = []
-for barcode, timestamp in st.session_state.to_add_queue:
-    if current_time - timestamp >= 1:  # 1 second passed
-        if barcode not in st.session_state.barcode_tags:
-            st.session_state.barcode_tags.append(barcode)
-    else:
-        new_queue.append((barcode, timestamp))
-st.session_state.to_add_queue = new_queue
+st.text_input("Type or scan barcode", key="barcode_input", on_change=schedule_add)
+process_queue()
 
 # -------------------------------
 # Display scanned barcodes (removable)
@@ -84,6 +84,8 @@ if st.session_state.barcode_tags:
         default=st.session_state.barcode_tags
     )
     st.session_state.barcode_tags = selected
+
+st.divider()
 
 # -------------------------------
 # Process All Barcodes
@@ -105,21 +107,15 @@ if st.button("🚀 Process All Barcodes", use_container_width=True):
         st.success(f"✅ {len(matched)} matched | ❌ {len(unmatched)} unmatched")
         st.session_state.barcode_tags = []
 
+st.divider()
+
 # -------------------------------
 # Show results
 # -------------------------------
 if not st.session_state.matched_df.empty:
     st.subheader("🔹 Matched Samples")
-
-    def highlight_row(row):
-        styles = [''] * len(row)
-        for i, col in enumerate(row.index):
-            if col in ["Screen ID", "Visit", "Sample Name"]:
-                styles[i] = "background-color: yellow"
-        return styles
-
     st.dataframe(
-        st.session_state.matched_df.style.apply(highlight_row, axis=1),
+        st.session_state.matched_df.style.apply(highlight_rows, axis=1),
         use_container_width=True
     )
 
@@ -127,12 +123,14 @@ if st.session_state.unmatched_barcodes:
     st.subheader("❌ Unmatched Barcodes")
     st.code("\n".join(st.session_state.unmatched_barcodes))
 
+st.divider()
+
 # -------------------------------
 # Download updated Excel
 # -------------------------------
 if uploaded_file and st.session_state.df is not None:
-    original_filename = uploaded_file.name
-    new_filename = original_filename.replace(".xlsx", "_Scanned.xlsx")
+    original_filename = Path(uploaded_file.name)
+    new_filename = original_filename.stem + "_Scanned.xlsx"
 
     buffer = BytesIO()
     with pd.ExcelWriter(buffer, engine="openpyxl") as writer:
