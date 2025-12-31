@@ -2,7 +2,6 @@ import streamlit as st
 import pandas as pd
 from io import BytesIO
 from openpyxl import load_workbook
-import time
 
 # ---------------------------------
 # Page setup
@@ -25,8 +24,6 @@ if "matched_df" not in st.session_state:
     st.session_state.matched_df = pd.DataFrame()
 if "unmatched_barcodes" not in st.session_state:
     st.session_state.unmatched_barcodes = []
-if "auto_submit" not in st.session_state:
-    st.session_state.auto_submit = False
 
 # ---------------------------------
 # Upload Excel
@@ -50,31 +47,22 @@ if uploaded_file:
             st.success("✅ File loaded. Ready to scan.")
 
         # ---------------------------------
-        # SCAN / TYPE BARCODES (Auto-Submit)
+        # SCAN / TYPE BARCODES (Auto-Add)
         # ---------------------------------
         st.subheader("🧪 Scan / Type Barcodes")
-        with st.form(key="scan_form", clear_on_submit=True):
-            barcode_input = st.text_input(
-                "Scan or type barcode",
-                placeholder="Type or scan barcode"
-            )
-            submitted = st.form_submit_button("➕ Add")
 
-            # Auto-submit after 1 second
-            if barcode_input and not st.session_state.auto_submit:
-                st.session_state.auto_submit = True
-                time.sleep(1)  # wait 1 second
-                cleaned = barcode_input.strip()
-                if cleaned and cleaned not in st.session_state.barcode_tags:
-                    st.session_state.barcode_tags.append(cleaned)
-                st.experimental_rerun()
+        def add_barcode():
+            cleaned = st.session_state.barcode_input.strip()
+            if cleaned and cleaned not in st.session_state.barcode_tags:
+                st.session_state.barcode_tags.append(cleaned)
+            st.session_state.barcode_input = ""  # clear input for next scan
 
-            # Manual submit works too
-            if submitted:
-                cleaned = barcode_input.strip()
-                if cleaned and cleaned not in st.session_state.barcode_tags:
-                    st.session_state.barcode_tags.append(cleaned)
-                st.session_state.auto_submit = False
+        st.text_input(
+            "Scan or type barcode",
+            placeholder="Type or scan barcode",
+            key="barcode_input",
+            on_change=add_barcode
+        )
 
         # ---------------------------------
         # CHIP DISPLAY
@@ -107,9 +95,8 @@ if uploaded_file:
 
                 st.success(f"✅ {len(matched)} matched | ❌ {len(unmatched)} unmatched")
 
-                # --- CLEAR the barcode input list for next set ---
+                # --- CLEAR the barcode list for next set ---
                 st.session_state.barcode_tags = []
-                st.session_state.auto_submit = False
 
         # ---------------------------------
         # RESULTS
