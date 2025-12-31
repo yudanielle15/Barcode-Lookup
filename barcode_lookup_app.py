@@ -43,7 +43,6 @@ if uploaded_file:
     # -------------------------------
     st.subheader("🧪 Scan / Paste Barcodes (continuous)")
 
-    # Text area for multiple barcodes
     input_area = st.text_area(
         "Scan or paste barcodes here (one per line)",
         value=st.session_state.barcode_input_area,
