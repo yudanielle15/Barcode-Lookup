@@ -2,65 +2,27 @@ import streamlit as st
 import pandas as pd
 from io import BytesIO
 from openpyxl import load_workbook
-import streamlit.components.v1 as components
+import time
 
 st.set_page_config(page_title="Biomarker Barcode Scanner", layout="centered")
-
-# --- CUSTOM JAVASCRIPT FOR AUTO-ENTER ---
-# This script looks for the text input and "presses Enter" 1 second after you stop typing/pasting.
-components.html(
-    """
-    <script>
-    const interval = setInterval(() => {
-        const inputs = window.parent.document.querySelectorAll('input[type="text"]');
-        for (let input of inputs) {
-            if (!input.dataset.listenerAttached) {
-                let timeout = null;
-                input.addEventListener('input', () => {
-                    clearTimeout(timeout);
-                    timeout = setTimeout(() => {
-                        input.dispatchEvent(new KeyboardEvent('keydown', { 'key': 'Enter', 'bubbles': true, 'keyCode': 13 }));
-                        input.blur(); // Triggers Streamlit update
-                        input.focus(); // Returns focus for next scan
-                    }, 1000); // 1 second delay
-                });
-                input.dataset.listenerAttached = "true";
-            }
-        }
-    }, 500);
-    </script>
-    """,
-    height=0,
-)
-
 st.title("🔬 Biomarker Barcode Scanner")
-st.info("💡 **Hands-Free Mode:** Paste a barcode and wait 1 second. It will add itself.")
 
 # -------------------------------
-# 1. Session State
+# 1. Session State Initialization
 # -------------------------------
 if "df" not in st.session_state:
     st.session_state.df = None
 if "barcode_tags" not in st.session_state:
     st.session_state.barcode_tags = []
+if "temp_input" not in st.session_state:
+    st.session_state.temp_input = ""
+if "last_change_time" not in st.session_state:
+    st.session_state.last_change_time = time.time()
 if "matched_df" not in st.session_state:
     st.session_state.matched_df = pd.DataFrame()
-if "unmatched_barcodes" not in st.session_state:
-    st.session_state.unmatched_barcodes = []
 
 # -------------------------------
-# 2. Logic to process the "Auto-Submit"
-# -------------------------------
-def add_barcode():
-    val = st.session_state.barcode_input.strip()
-    if val:
-        if val not in st.session_state.barcode_tags:
-            st.session_state.barcode_tags.append(val)
-        # Clear the box for the next entry
-        st.session_state.barcode_input = ""
-
-# -------------------------------
-# 3. File Upload
+# 2. File Upload
 # -------------------------------
 uploaded_file = st.file_uploader("📁 Upload Excel file", type=["xlsx"])
 
@@ -73,57 +35,78 @@ if uploaded_file:
         df["Scan_Status"] = df.get("Scan_Status", "")
         df["Barcode"] = df["Barcode"].astype(str)
         st.session_state.df = df
+        st.success("✅ File loaded.")
 
     # -------------------------------
-    # 4. The Input Field
+    # 3. Auto-Processing Fragment
     # -------------------------------
-    st.text_input(
-        "Paste barcode here:", 
-        key="barcode_input", 
-        on_change=add_barcode
-    )
+    # This block runs independently to check the timer
+    @st.fragment(run_every=0.5)
+    def barcode_input_area():
+        st.subheader("🧪 Scan / Paste Barcode")
+        
+        # Text input tied to temp_input
+        current_input = st.text_input(
+            "The list updates 1s after you stop pasting:", 
+            value=st.session_state.temp_input,
+            key="input_field",
+            placeholder="Paste here..."
+        )
+
+        # Logic: If text is entered...
+        if current_input != st.session_state.temp_input:
+            st.session_state.temp_input = current_input
+            st.session_state.last_change_time = time.time()
+
+        # If 1 second has passed since the last change and the box isn't empty
+        if st.session_state.temp_input.strip() != "":
+            if time.time() - st.session_state.last_change_time > 1.0:
+                barcode = st.session_state.temp_input.strip()
+                if barcode not in st.session_state.barcode_tags:
+                    st.session_state.barcode_tags.append(barcode)
+                
+                # RESET: Clear the input and the timer
+                st.session_state.temp_input = ""
+                st.rerun()
+
+    barcode_input_area()
 
     # -------------------------------
-    # 5. Display Bubbles
+    # 4. Display Bubbles
     # -------------------------------
     if st.session_state.barcode_tags:
-        cols = st.columns(5)
-        for i, barcode in enumerate(st.session_state.barcode_tags):
-            with cols[i % 5]:
-                if st.button(f"❌ {barcode}", key=f"remove_{barcode}"):
-                    st.session_state.barcode_tags.remove(barcode)
+        st.write("Current List:")
+        cols = st.columns(4)
+        for i, tag in enumerate(st.session_state.barcode_tags):
+            with cols[i % 4]:
+                if st.button(f"❌ {tag}", key=f"btn_{tag}_{i}"):
+                    st.session_state.barcode_tags.remove(tag)
                     st.rerun()
 
     # -------------------------------
-    # 6. Process Button
+    # 5. Process & Download
     # -------------------------------
+    st.divider()
     if st.button("🚀 Process All Barcodes", use_container_width=True):
-        barcode_set = set(st.session_state.barcode_tags)
-        df_set = set(st.session_state.df["Barcode"])
-        matched = barcode_set & df_set
-        unmatched = sorted(barcode_set - df_set)
+        tags = set(st.session_state.barcode_tags)
+        st.session_state.df.loc[st.session_state.df["Barcode"].isin(tags), "Scan_Status"] = "Matched"
+        st.session_state.matched_df = st.session_state.df[st.session_state.df["Barcode"].isin(tags)]
+        st.session_state.barcode_tags = [] # Clear the list
+        st.success("Processing complete!")
 
-        st.session_state.df.loc[st.session_state.df["Barcode"].isin(matched), "Scan_Status"] = "Matched"
-        st.session_state.matched_df = st.session_state.df[st.session_state.df["Barcode"].isin(matched)]
-        st.session_state.unmatched_barcodes = unmatched
-        st.session_state.barcode_tags = [] # Reset for next batch
-        st.success(f"Processed: {len(matched)} matches found.")
-
-    # -------------------------------
-    # 7. Results & Download
-    # -------------------------------
     if not st.session_state.matched_df.empty:
         st.dataframe(st.session_state.matched_df, use_container_width=True)
-
-    # Download Logic
-    buffer = BytesIO()
-    with pd.ExcelWriter(buffer, engine='openpyxl') as writer:
-        st.session_state.df.to_excel(writer, index=False)
-    
-    st.download_button(
-        label="💾 Download Updated Excel",
-        data=buffer.getvalue(),
-        file_name="Scanned_Results.xlsx",
-        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        use_container_width=True
-    )
+        
+        # Prepare Excel Download
+        output = BytesIO()
+        with pd.ExcelWriter(output, engine='openpyxl') as writer:
+            st.session_state.df.to_excel(writer, index=False)
+        
+        st.download_button(
+            "💾 Download Scanned Excel",
+            data=output.getvalue(),
+            file_name="Updated_Samples.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
+else:
+    st.info("Please upload an Excel file to start.")
