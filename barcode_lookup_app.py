@@ -1,7 +1,6 @@
 import streamlit as st
 import pandas as pd
 from io import BytesIO
-from openpyxl import load_workbook
 
 # -------------------------------
 # Page config
@@ -21,10 +20,6 @@ if "matched_df" not in st.session_state:
     st.session_state.matched_df = pd.DataFrame()
 if "unmatched_barcodes" not in st.session_state:
     st.session_state.unmatched_barcodes = []
-
-# Initialize barcode_input key safely
-if "barcode_input" not in st.session_state:
-    st.session_state.barcode_input = ""
 
 # -------------------------------
 # Upload Excel
@@ -47,28 +42,27 @@ if uploaded_file:
 # -------------------------------
 st.subheader("🧪 Scan / Type Barcodes")
 
-barcode_input = st.text_input(
-    "Type or scan barcode",
-    value=st.session_state.barcode_input,
-    key="barcode_input"
-)
-
-# Add barcode when user hits Enter
-if barcode_input:
-    cleaned = barcode_input.strip()
+def add_barcode():
+    cleaned = st.session_state.barcode_input.strip()
     if cleaned and cleaned not in st.session_state.barcode_tags:
         st.session_state.barcode_tags.append(cleaned)
-    # Clear the input by resetting session state safely
     st.session_state.barcode_input = ""
 
-# Display scanned barcodes
+st.text_input(
+    "Type or scan barcode",
+    key="barcode_input",
+    on_change=add_barcode
+)
+
+# Display scanned barcodes and allow removal
 if st.session_state.barcode_tags:
-    st.multiselect(
+    selected = st.multiselect(
         "Scanned barcodes (click ❌ to remove):",
-        options=st.session_state.barcode_tags.copy(),
-        default=st.session_state.barcode_tags.copy(),
-        key="barcode_tags_widget"
+        options=st.session_state.barcode_tags,
+        default=st.session_state.barcode_tags
     )
+    # Sync session state
+    st.session_state.barcode_tags = selected
 
 # -------------------------------
 # Process All Barcodes
@@ -77,10 +71,11 @@ if st.button("🚀 Process All Barcodes", use_container_width=True):
     if st.session_state.df is None:
         st.warning("⚠️ Upload an Excel file first.")
     else:
-        barcode_set = set(st.session_state.barcode_tags)
-        df_set = set(st.session_state.df["Barcode"])
-        matched = barcode_set & df_set
-        unmatched = sorted(barcode_set - df_set)
+        barcode_list = st.session_state.barcode_tags
+        df_barcodes = st.session_state.df["Barcode"].tolist()
+
+        matched = [b for b in barcode_list if b in df_barcodes]
+        unmatched = [b for b in barcode_list if b not in df_barcodes]
 
         st.session_state.df.loc[st.session_state.df["Barcode"].isin(matched), "Scan_Status"] = "Matched"
         st.session_state.matched_df = st.session_state.df[st.session_state.df["Barcode"].isin(matched)]
@@ -117,24 +112,10 @@ if st.session_state.unmatched_barcodes:
 if uploaded_file and st.session_state.df is not None:
     original_filename = uploaded_file.name
     new_filename = original_filename.replace(".xlsx", "_Scanned.xlsx")
-    uploaded_file.seek(0)
-    wb = load_workbook(uploaded_file)
-    ws = wb.active
-
-    # Ensure 'Scan_Status' column exists
-    headers = [cell.value for cell in ws[1]]
-    if "Scan_Status" not in headers:
-        ws.cell(row=1, column=ws.max_column + 1, value="Scan_Status")
-        headers.append("Scan_Status")
-
-    header_map = {cell: idx + 1 for idx, cell in enumerate(headers)}
-
-    # Write Scan_Status values
-    for i, val in enumerate(st.session_state.df["Scan_Status"], start=2):
-        ws.cell(row=i, column=header_map["Scan_Status"], value=val)
 
     buffer = BytesIO()
-    wb.save(buffer)
+    with pd.ExcelWriter(buffer, engine="openpyxl") as writer:
+        st.session_state.df.to_excel(writer, index=False, sheet_name="Sheet1")
     buffer.seek(0)
 
     st.download_button(
