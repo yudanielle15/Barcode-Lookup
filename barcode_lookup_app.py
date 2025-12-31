@@ -9,7 +9,7 @@ st.title("🔬 Biomarker Sample Barcode Scanner")
 st.write("Scan or type barcodes → they become removable bubbles → process all at once")
 
 # -------------------------------
-# Session state initialization
+# Session state
 # -------------------------------
 if "df" not in st.session_state:
     st.session_state.df = None
@@ -39,78 +39,66 @@ if uploaded_file:
         df["Barcode"] = df["Barcode"].astype(str)
         st.session_state.df = df
         st.success("✅ File loaded. Ready to scan.")
-else:
-    st.info("⬆️ Upload an Excel file to begin.")
 
 # -------------------------------
-# Barcode input section
+# Barcode Input with auto bubble
 # -------------------------------
 st.subheader("🧪 Scan / Type Barcodes")
 input_val = st.text_input("Type or scan barcode", key="input_box")
 
-# Update last input time
+# Update last input and time
 if input_val != st.session_state.barcode_input:
     st.session_state.barcode_input = input_val
     st.session_state.last_input_time = time.time()
 
-# Add barcode after 1 second of inactivity
-if st.session_state.barcode_input:
-    if time.time() - st.session_state.last_input_time > 1:
-        cleaned = st.session_state.barcode_input.strip()
-        if cleaned and cleaned not in st.session_state.barcode_tags:
-            st.session_state.barcode_tags.append(cleaned)
-        st.session_state.barcode_input = ""
-        st.experimental_rerun()
+# Check if 1 second has passed to convert input into bubble
+if st.session_state.barcode_input and (time.time() - st.session_state.last_input_time > 1):
+    cleaned = st.session_state.barcode_input.strip()
+    if cleaned and cleaned not in st.session_state.barcode_tags:
+        st.session_state.barcode_tags.append(cleaned)
+    st.session_state.barcode_input = ""
+    st.experimental_rerun()
 
-# Display barcode bubbles (removable)
+# Display bubbles horizontally
 if st.session_state.barcode_tags:
-    selected = st.multiselect(
-        "Scanned barcodes (click ❌ to remove):",
-        options=st.session_state.barcode_tags.copy(),
-        default=st.session_state.barcode_tags.copy(),
-        key="barcode_tags_widget"
-    )
-    # Update session state after removals
-    st.session_state.barcode_tags = selected
+    st.write("Scanned barcodes:")
+    cols = st.columns(len(st.session_state.barcode_tags))
+    for i, barcode in enumerate(st.session_state.barcode_tags):
+        if cols[i].button(f"{barcode} ❌"):
+            st.session_state.barcode_tags.pop(i)
+            st.experimental_rerun()
 
 # -------------------------------
-# Process all barcodes
+# Process All Barcodes
 # -------------------------------
-if st.session_state.df is not None:
-    if st.button("🚀 Process All Barcodes", use_container_width=True):
+if st.button("🚀 Process All Barcodes", use_container_width=True):
+    if st.session_state.df is None:
+        st.warning("Please upload Excel first.")
+    else:
         barcode_set = set(st.session_state.barcode_tags)
         df_set = set(st.session_state.df["Barcode"])
         matched = barcode_set & df_set
         unmatched = sorted(barcode_set - df_set)
 
-        st.session_state.df.loc[
-            st.session_state.df["Barcode"].isin(matched), "Scan_Status"
-        ] = "Matched"
-
-        st.session_state.matched_df = st.session_state.df[
-            st.session_state.df["Barcode"].isin(matched)
-        ]
+        st.session_state.df.loc[st.session_state.df["Barcode"].isin(matched), "Scan_Status"] = "Matched"
+        st.session_state.matched_df = st.session_state.df[st.session_state.df["Barcode"].isin(matched)]
         st.session_state.unmatched_barcodes = unmatched
+
         st.success(f"✅ {len(matched)} matched | ❌ {len(unmatched)} unmatched")
         st.session_state.barcode_tags = []
 
 # -------------------------------
-# Show results
+# Show Results
 # -------------------------------
 if not st.session_state.matched_df.empty:
     st.subheader("🔹 Matched Samples")
-
     def highlight_row(row):
-        styles = [""] * len(row)
+        styles = [''] * len(row)
         for i, col in enumerate(row.index):
             if col in ["Screen ID", "Visit", "Sample Name"]:
                 styles[i] = "background-color: yellow"
         return styles
-
-    st.dataframe(
-        st.session_state.matched_df.style.apply(highlight_row, axis=1),
-        use_container_width=True,
-    )
+    st.dataframe(st.session_state.matched_df.style.apply(highlight_row, axis=1), use_container_width=True)
 
 if st.session_state.unmatched_barcodes:
     st.subheader("❌ Unmatched Barcodes")
@@ -119,7 +107,7 @@ if st.session_state.unmatched_barcodes:
 # -------------------------------
 # Download updated Excel
 # -------------------------------
-if uploaded_file and st.session_state.df is not None:
+if uploaded_file:
     original_filename = uploaded_file.name
     new_filename = original_filename.replace(".xlsx", "_Scanned.xlsx")
     uploaded_file.seek(0)
@@ -139,5 +127,7 @@ if uploaded_file and st.session_state.df is not None:
         buffer,
         file_name=new_filename,
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        use_container_width=True,
+        use_container_width=True
     )
+else:
+    st.info("⬆️ Upload an Excel file to begin.")
