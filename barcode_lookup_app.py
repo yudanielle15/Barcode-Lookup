@@ -2,14 +2,42 @@ import streamlit as st
 import pandas as pd
 from io import BytesIO
 from openpyxl import load_workbook
-import time
+import streamlit.components.v1 as components
 
 st.set_page_config(page_title="Biomarker Barcode Scanner", layout="centered")
-st.title("🔬 Biomarker Sample Barcode Scanner")
-st.write("Scan barcodes → they automatically clear and add to the list.")
+
+# --- CUSTOM JAVASCRIPT FOR AUTO-ENTER ---
+# This script looks for the text input and "presses Enter" 1 second after you stop typing/pasting.
+components.html(
+    """
+    <script>
+    const interval = setInterval(() => {
+        const inputs = window.parent.document.querySelectorAll('input[type="text"]');
+        for (let input of inputs) {
+            if (!input.dataset.listenerAttached) {
+                let timeout = null;
+                input.addEventListener('input', () => {
+                    clearTimeout(timeout);
+                    timeout = setTimeout(() => {
+                        input.dispatchEvent(new KeyboardEvent('keydown', { 'key': 'Enter', 'bubbles': true, 'keyCode': 13 }));
+                        input.blur(); // Triggers Streamlit update
+                        input.focus(); // Returns focus for next scan
+                    }, 1000); // 1 second delay
+                });
+                input.dataset.listenerAttached = "true";
+            }
+        }
+    }, 500);
+    </script>
+    """,
+    height=0,
+)
+
+st.title("🔬 Biomarker Barcode Scanner")
+st.info("💡 **Hands-Free Mode:** Paste a barcode and wait 1 second. It will add itself.")
 
 # -------------------------------
-# 1. Session State Initialization
+# 1. Session State
 # -------------------------------
 if "df" not in st.session_state:
     st.session_state.df = None
@@ -21,23 +49,20 @@ if "unmatched_barcodes" not in st.session_state:
     st.session_state.unmatched_barcodes = []
 
 # -------------------------------
-# 2. The "Auto-Add" Logic (Callback)
+# 2. Logic to process the "Auto-Submit"
 # -------------------------------
-def process_scan():
-    """This function runs automatically when the user (or scanner) hits Enter."""
+def add_barcode():
     val = st.session_state.barcode_input.strip()
     if val:
         if val not in st.session_state.barcode_tags:
-            # Simulate a 1-sec processing delay as requested
-            time.sleep(1) 
             st.session_state.barcode_tags.append(val)
-        # This clears the text box for the next scan
+        # Clear the box for the next entry
         st.session_state.barcode_input = ""
 
 # -------------------------------
-# 3. Upload Excel
+# 3. File Upload
 # -------------------------------
-uploaded_file = st.file_uploader("📁 Upload your sample Excel file", type=["xlsx"])
+uploaded_file = st.file_uploader("📁 Upload Excel file", type=["xlsx"])
 
 if uploaded_file:
     if st.session_state.df is None:
@@ -45,30 +70,23 @@ if uploaded_file:
         if "Barcode" not in df.columns:
             st.error("❌ Excel must contain a 'Barcode' column.")
             st.stop()
-        if "Scan_Status" not in df.columns:
-            df["Scan_Status"] = ""
+        df["Scan_Status"] = df.get("Scan_Status", "")
         df["Barcode"] = df["Barcode"].astype(str)
         st.session_state.df = df
-        st.success("✅ File loaded. Ready to scan.")
 
     # -------------------------------
-    # 4. Scan / Type Barcodes
+    # 4. The Input Field
     # -------------------------------
-    st.subheader("🧪 Scan / Type Barcodes")
-    
-    # The key="barcode_input" links this field to the session state
-    # The on_change=process_scan triggers the logic without clicking a button
     st.text_input(
-        "Focus here and scan barcode", 
+        "Paste barcode here:", 
         key="barcode_input", 
-        on_change=process_scan
+        on_change=add_barcode
     )
 
     # -------------------------------
     # 5. Display Bubbles
     # -------------------------------
     if st.session_state.barcode_tags:
-        st.write("Scanned barcodes (click ❌ to remove):")
         cols = st.columns(5)
         for i, barcode in enumerate(st.session_state.barcode_tags):
             with cols[i % 5]:
@@ -77,7 +95,7 @@ if uploaded_file:
                     st.rerun()
 
     # -------------------------------
-    # 6. Process All Barcodes
+    # 6. Process Button
     # -------------------------------
     if st.button("🚀 Process All Barcodes", use_container_width=True):
         barcode_set = set(st.session_state.barcode_tags)
@@ -88,45 +106,24 @@ if uploaded_file:
         st.session_state.df.loc[st.session_state.df["Barcode"].isin(matched), "Scan_Status"] = "Matched"
         st.session_state.matched_df = st.session_state.df[st.session_state.df["Barcode"].isin(matched)]
         st.session_state.unmatched_barcodes = unmatched
-
-        st.success(f"✅ {len(matched)} matched | ❌ {len(unmatched)} unmatched")
-        st.session_state.barcode_tags = [] # Clear the scanner list after processing
+        st.session_state.barcode_tags = [] # Reset for next batch
+        st.success(f"Processed: {len(matched)} matches found.")
 
     # -------------------------------
-    # 7. Show Results & Download
+    # 7. Results & Download
     # -------------------------------
     if not st.session_state.matched_df.empty:
-        st.subheader("🔹 Matched Samples")
         st.dataframe(st.session_state.matched_df, use_container_width=True)
 
-    if st.session_state.unmatched_barcodes:
-        st.subheader("❌ Unmatched Barcodes")
-        st.code("\n".join(st.session_state.unmatched_barcodes))
-
-    # Excel Export
-    original_filename = uploaded_file.name
-    new_filename = original_filename.replace(".xlsx", "_Scanned.xlsx")
-    
-    wb = load_workbook(uploaded_file)
-    ws = wb.active
-    header_map = {cell.value: i + 1 for i, cell in enumerate(ws[1])}
-    
-    if "Scan_Status" not in header_map:
-        ws.cell(row=1, column=ws.max_column + 1, value="Scan_Status")
-        header_map["Scan_Status"] = ws.max_column
-
-    for i, val in enumerate(st.session_state.df["Scan_Status"], start=2):
-        ws.cell(row=i, column=header_map["Scan_Status"], value=val)
-
+    # Download Logic
     buffer = BytesIO()
-    wb.save(buffer)
+    with pd.ExcelWriter(buffer, engine='openpyxl') as writer:
+        st.session_state.df.to_excel(writer, index=False)
+    
     st.download_button(
-        "💾 Download Updated Excel",
-        buffer.getvalue(),
-        file_name=new_filename,
+        label="💾 Download Updated Excel",
+        data=buffer.getvalue(),
+        file_name="Scanned_Results.xlsx",
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         use_container_width=True
     )
-
-else:
-    st.info("⬆️ Upload an Excel file to begin.")
