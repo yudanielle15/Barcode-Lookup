@@ -2,7 +2,6 @@ import streamlit as st
 import pandas as pd
 from io import BytesIO
 from openpyxl import load_workbook
-import time
 
 # -------------------------------
 # Page config
@@ -18,8 +17,6 @@ if "df" not in st.session_state:
     st.session_state.df = None
 if "barcode_tags" not in st.session_state:
     st.session_state.barcode_tags = []
-if "barcode_input" not in st.session_state:
-    st.session_state.barcode_input = ""
 if "matched_df" not in st.session_state:
     st.session_state.matched_df = pd.DataFrame()
 if "unmatched_barcodes" not in st.session_state:
@@ -48,13 +45,13 @@ st.subheader("🧪 Scan / Type Barcodes")
 
 input_val = st.text_input("Type or scan barcode", key="input_box")
 
-# Add barcode on Enter
+# Add barcode when user hits Enter
 if input_val:
     cleaned = input_val.strip()
     if cleaned and cleaned not in st.session_state.barcode_tags:
         st.session_state.barcode_tags.append(cleaned)
-    st.session_state.barcode_input = ""
-    st.experimental_rerun()
+    # Clear input after adding
+    st.session_state.input_box = ""
 
 # Display scanned barcodes
 if st.session_state.barcode_tags:
