@@ -2,7 +2,6 @@ import streamlit as st
 import pandas as pd
 from io import BytesIO
 from pathlib import Path
-import time
 
 # -------------------------------
 # Page config
@@ -20,8 +19,7 @@ for key, default in {
     "barcode_tags": [],
     "matched_df": pd.DataFrame(),
     "unmatched_barcodes": [],
-    "barcode_input": "",
-    "to_add_queue": []
+    "barcode_input": ""
 }.items():
     if key not in st.session_state:
         st.session_state[key] = default
@@ -43,36 +41,17 @@ if uploaded_file and st.session_state.df is None:
 st.divider()
 
 # -------------------------------
-# Functions
-# -------------------------------
-def schedule_add():
-    barcode = st.session_state.barcode_input.strip()
-    if barcode:
-        st.session_state.to_add_queue.append((barcode, time.time()))
-        st.session_state.barcode_input = ""
-
-def process_queue():
-    current_time = time.time()
-    new_queue = []
-    for barcode, timestamp in st.session_state.to_add_queue:
-        if current_time - timestamp >= 1:  # 1 second passed
-            if barcode not in st.session_state.barcode_tags:
-                st.session_state.barcode_tags.append(barcode)
-        else:
-            new_queue.append((barcode, timestamp))
-    st.session_state.to_add_queue = new_queue
-
-def highlight_rows(df):
-    return ["background-color: yellow" if col in ["Screen ID", "Visit", "Sample Name"] else "" for col in df.index]
-
-st.divider()
-
-# -------------------------------
-# Scan / Type Barcode
+# Barcode input: add instantly
 # -------------------------------
 st.subheader("🧪 Scan / Type Barcodes")
-st.text_input("Type or scan barcode", key="barcode_input", on_change=schedule_add)
-process_queue()
+
+def add_barcode():
+    barcode = st.session_state.barcode_input.strip()
+    if barcode and barcode not in st.session_state.barcode_tags:
+        st.session_state.barcode_tags.append(barcode)
+    st.session_state.barcode_input = ""  # clear input
+
+st.text_input("Type or scan barcode", key="barcode_input", on_change=add_barcode)
 
 # -------------------------------
 # Display scanned barcodes (removable)
@@ -115,7 +94,10 @@ st.divider()
 if not st.session_state.matched_df.empty:
     st.subheader("🔹 Matched Samples")
     st.dataframe(
-        st.session_state.matched_df.style.apply(highlight_rows, axis=1),
+        st.session_state.matched_df.style.apply(
+            lambda row: ["background-color: yellow" if col in ["Screen ID", "Visit", "Sample Name"] else "" for col in row.index],
+            axis=1
+        ),
         use_container_width=True
     )
 
