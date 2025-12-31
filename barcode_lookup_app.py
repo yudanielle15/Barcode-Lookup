@@ -22,8 +22,8 @@ if "barcode_tags" not in st.session_state:
     st.session_state.barcode_tags = []
 if "matched_df" not in st.session_state:
     st.session_state.matched_df = pd.DataFrame()
-if "missing_barcodes" not in st.session_state:
-    st.session_state.missing_barcodes = []
+if "unmatched_barcodes" not in st.session_state:
+    st.session_state.unmatched_barcodes = []
 
 # ---------------------------------
 # Upload Excel
@@ -52,7 +52,7 @@ if uploaded_file:
         st.subheader("🧪 Scan / Type Barcodes")
         with st.form(key="scan_form", clear_on_submit=True):
             barcode_input = st.text_input(
-                "Scan or type barcode (Enter = add):"
+                "Scan or type barcode (press Enter = add):"  # updated placeholder
             )
             submitted = st.form_submit_button("➕ Add")
             if submitted:
@@ -83,14 +83,14 @@ if uploaded_file:
                 barcode_set = set(st.session_state.barcode_tags)
                 df_set = set(df["Barcode"])
                 matched = barcode_set & df_set
-                missing = sorted(barcode_set - df_set)
+                unmatched = sorted(barcode_set - df_set)  # renamed
 
                 df.loc[df["Barcode"].isin(matched), "Scan_Status"] = "Matched"
                 st.session_state.df = df
                 st.session_state.matched_df = df[df["Barcode"].isin(matched)]
-                st.session_state.missing_barcodes = missing
+                st.session_state.unmatched_barcodes = unmatched  # renamed
 
-                st.success(f"✅ {len(matched)} matched | ❌ {len(missing)} missing")
+                st.success(f"✅ {len(matched)} matched | ❌ {len(unmatched)} unmatched")
 
                 # --- CLEAR the true barcode list for next set ---
                 st.session_state.barcode_tags = []
@@ -111,9 +111,9 @@ if uploaded_file:
                 use_container_width=True
             )
 
-        if st.session_state.missing_barcodes:
-            st.subheader("❌ Missing Barcodes")
-            st.code("\n".join(st.session_state.missing_barcodes))
+        if st.session_state.unmatched_barcodes:
+            st.subheader("❌ Unmatched Barcodes")  # header updated
+            st.code("\n".join(st.session_state.unmatched_barcodes))
 
         # ---------------------------------
         # DOWNLOAD UPDATED EXCEL
