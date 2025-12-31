@@ -22,6 +22,10 @@ if "matched_df" not in st.session_state:
 if "unmatched_barcodes" not in st.session_state:
     st.session_state.unmatched_barcodes = []
 
+# Initialize barcode_input key safely
+if "barcode_input" not in st.session_state:
+    st.session_state.barcode_input = ""
+
 # -------------------------------
 # Upload Excel
 # -------------------------------
@@ -43,14 +47,18 @@ if uploaded_file:
 # -------------------------------
 st.subheader("🧪 Scan / Type Barcodes")
 
-barcode_input = st.text_input("Type or scan barcode", key="barcode_input")
+barcode_input = st.text_input(
+    "Type or scan barcode",
+    value=st.session_state.barcode_input,
+    key="barcode_input"
+)
 
 # Add barcode when user hits Enter
 if barcode_input:
     cleaned = barcode_input.strip()
     if cleaned and cleaned not in st.session_state.barcode_tags:
         st.session_state.barcode_tags.append(cleaned)
-    # Clear the input box after adding
+    # Clear the input by resetting session state safely
     st.session_state.barcode_input = ""
 
 # Display scanned barcodes
