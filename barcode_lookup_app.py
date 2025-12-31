@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 from io import BytesIO
 from openpyxl import load_workbook
+import time
 
 st.set_page_config(page_title="Biomarker Barcode Scanner", layout="centered")
 st.title("🔬 Biomarker Sample Barcode Scanner")
@@ -12,51 +13,52 @@ if "df" not in st.session_state:
     st.session_state.df = None
 if "barcode_tags" not in st.session_state:
     st.session_state.barcode_tags = []
+if "barcode_input" not in st.session_state:
+    st.session_state.barcode_input = ""
+if "last_input_time" not in st.session_state:
+    st.session_state.last_input_time = 0
 if "matched_df" not in st.session_state:
     st.session_state.matched_df = pd.DataFrame()
 if "unmatched_barcodes" not in st.session_state:
     st.session_state.unmatched_barcodes = []
 
+# Upload Excel
 uploaded_file = st.file_uploader("📁 Upload your sample Excel file", type=["xlsx"])
 
 if uploaded_file:
-    df = pd.read_excel(uploaded_file)
-    if "Barcode" not in df.columns:
-        st.error("❌ Excel must contain a 'Barcode' column.")
-        st.stop()
-    if "Scan_Status" not in df.columns:
-        df["Scan_Status"] = ""
-    df["Barcode"] = df["Barcode"].astype(str)
-    st.session_state.df = df
-    st.success("✅ File loaded. Ready to scan.")
+    if st.session_state.df is None:
+        df = pd.read_excel(uploaded_file)
+        if "Barcode" not in df.columns:
+            st.error("❌ Excel must contain a 'Barcode' column.")
+            st.stop()
+        if "Scan_Status" not in df.columns:
+            df["Scan_Status"] = ""
+        df["Barcode"] = df["Barcode"].astype(str)
+        st.session_state.df = df
+        st.success("✅ File loaded. Ready to scan.")
 
     # -------------------------------
-    # Auto-enter barcode input
+    # Auto-add barcode input
     # -------------------------------
     st.subheader("🧪 Scan / Type Barcodes")
 
-    barcode_input = st.text_input(
-        "Scan or type barcode",
-        key="barcode_input",
-        placeholder="Type or scan barcode"
+    input_val = st.text_input(
+        "Type or scan barcode",
+        key="input_box"
     )
 
-    # JavaScript auto-submit
-    st.markdown("""
-        <script>
-        const input = window.parent.document.querySelector('input[data-baseweb="input"]');
-        if(input){
-            input.addEventListener('input', function(){
-                const e = new Event('change', { bubbles: true });
-                input.dispatchEvent(e);
-            });
-        }
-        </script>
-        """, unsafe_allow_html=True)
+    # Track last input and time
+    if input_val != st.session_state.barcode_input:
+        st.session_state.barcode_input = input_val
+        st.session_state.last_input_time = time.time()
 
-    if barcode_input and barcode_input not in st.session_state.barcode_tags:
-        st.session_state.barcode_tags.append(barcode_input)
+    # If 1 second has passed since last input, add to list
+    if st.session_state.barcode_input and (time.time() - st.session_state.last_input_time > 1):
+        cleaned = st.session_state.barcode_input.strip()
+        if cleaned and cleaned not in st.session_state.barcode_tags:
+            st.session_state.barcode_tags.append(cleaned)
         st.session_state.barcode_input = ""
+        st.experimental_rerun()
 
     # -------------------------------
     # Display scanned barcodes
@@ -70,7 +72,7 @@ if uploaded_file:
         )
 
     # -------------------------------
-    # Process all barcodes
+    # Process All Barcodes
     # -------------------------------
     if st.button("🚀 Process All Barcodes", use_container_width=True):
         barcode_set = set(st.session_state.barcode_tags)
