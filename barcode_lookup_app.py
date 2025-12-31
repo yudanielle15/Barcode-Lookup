@@ -43,10 +43,9 @@ if uploaded_file:
 # -------------------------------
 st.subheader("🧪 Scan / Type Barcodes")
 
-# text_input with a dedicated key
 barcode_input = st.text_input("Type or scan barcode", key="barcode_input")
 
-# Append barcode if user typed something and pressed Enter
+# Add barcode when user hits Enter
 if barcode_input:
     cleaned = barcode_input.strip()
     if cleaned and cleaned not in st.session_state.barcode_tags:
