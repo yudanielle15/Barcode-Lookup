@@ -68,7 +68,7 @@ if uploaded_file:
                 "Scanned barcodes (click ❌ to remove):",
                 options=st.session_state.barcode_tags,
                 default=st.session_state.barcode_tags,
-                key="barcode_tags"
+                key="barcode_tags_widget"  # <-- different widget key
             )
 
         # ---------------------------------
@@ -91,8 +91,8 @@ if uploaded_file:
 
                 st.success(f"✅ {len(matched)} matched | ❌ {len(missing)} missing")
 
-                # --- CLEAR barcode_tags in-place for next set ---
-                st.session_state.barcode_tags.clear()
+                # --- CLEAR barcodes for next set ---
+                st.session_state.barcode_tags = []
 
         # ---------------------------------
         # RESULTS
