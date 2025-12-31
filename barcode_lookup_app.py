@@ -46,10 +46,17 @@ if uploaded_file:
     # -------------------------------
     st.subheader("🧪 Scan / Type Barcodes")
 
-    # Input box
-    input_val = st.text_input("Type or scan barcode", value=st.session_state.barcode_input, key="input_box")
+    # Placeholder for input box
+    input_placeholder = st.empty()
 
-    # Update session state on input change
+    # Text input
+    input_val = input_placeholder.text_input(
+        "Type or scan barcode", 
+        value=st.session_state.barcode_input, 
+        key="input_box"
+    )
+
+    # Update session state and last input time
     if input_val != st.session_state.barcode_input:
         st.session_state.barcode_input = input_val
         st.session_state.last_input_time = time.time()
@@ -60,19 +67,17 @@ if uploaded_file:
             cleaned = st.session_state.barcode_input.strip()
             if cleaned and cleaned not in st.session_state.barcode_tags:
                 st.session_state.barcode_tags.append(cleaned)
-            # Clear input field
-            st.session_state.barcode_input = ""
-            # Rerun to update bubbles
-            st.experimental_rerun()
+            st.session_state.barcode_input = ""  # clear input
+            st.experimental_rerun()  # update UI
 
     # -------------------------------
     # Display scanned barcodes as removable "bubbles"
     # -------------------------------
     if st.session_state.barcode_tags:
         st.write("Scanned barcodes (click ❌ to remove):")
-        cols = st.columns(len(st.session_state.barcode_tags))
+        cols = st.columns(5)  # max 5 per row
         for i, barcode in enumerate(st.session_state.barcode_tags):
-            with cols[i % 5]:  # max 5 per row
+            with cols[i % 5]:
                 if st.button(f"❌ {barcode}", key=f"remove_{barcode}"):
                     st.session_state.barcode_tags.remove(barcode)
                     st.experimental_rerun()
