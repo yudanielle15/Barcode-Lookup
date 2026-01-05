@@ -22,6 +22,7 @@ defaults = {
     "unmatched_barcodes": [],
     "barcode_input": ""
 }
+
 for key, value in defaults.items():
     if key not in st.session_state:
         st.session_state[key] = value
@@ -30,22 +31,26 @@ for key, value in defaults.items():
 # Upload Excel
 # -------------------------------
 uploaded_file = st.file_uploader("📁 Upload your sample Excel file", type=["xlsx"])
+
 if uploaded_file:
     df = pd.read_excel(uploaded_file)
     if "Barcode" not in df.columns:
         st.error("❌ Excel must contain a 'Barcode' column.")
         st.stop()
+
     df["Scan_Status"] = df.get("Scan_Status", "")
     df["Barcode"] = df["Barcode"].astype(str)
 
-    # Reset all previous data when a new file is uploaded
+    # Reset previous session data when a new file is uploaded
     st.session_state.df = df
     st.session_state.matched_df = pd.DataFrame()
     st.session_state.unmatched_barcodes = []
     st.session_state.barcode_tags = []
+    st.session_state.barcode_input = ""
 
     st.success("✅ File loaded. Ready to scan.")
-    st.divider()
+
+st.divider()
 
 # -------------------------------
 # Barcode input
@@ -70,7 +75,8 @@ if st.session_state.barcode_tags:
         default=st.session_state.barcode_tags
     )
     st.session_state.barcode_tags = selected
-    st.divider()
+
+st.divider()
 
 # -------------------------------
 # Process all barcodes
@@ -81,20 +87,25 @@ if st.button("🚀 Process All Barcodes", use_container_width=True):
     else:
         barcode_list = st.session_state.barcode_tags
         df_barcodes = st.session_state.df["Barcode"].tolist()
+
         matched = [b for b in barcode_list if b in df_barcodes]
         unmatched = [b for b in barcode_list if b not in df_barcodes]
 
         st.session_state.df.loc[
-            st.session_state.df["Barcode"].isin(matched), "Scan_Status"
+            st.session_state.df["Barcode"].isin(matched),
+            "Scan_Status"
         ] = "Matched"
+
         st.session_state.matched_df = st.session_state.df[
             st.session_state.df["Barcode"].isin(matched)
         ]
+
         st.session_state.unmatched_barcodes = unmatched
         st.session_state.barcode_tags = []
 
         st.success(f"✅ {len(matched)} matched | ❌ {len(unmatched)} unmatched")
-        st.divider()
+
+st.divider()
 
 # -------------------------------
 # Show results
@@ -104,7 +115,8 @@ if not st.session_state.matched_df.empty:
     st.dataframe(
         st.session_state.matched_df.style.apply(
             lambda row: [
-                "background-color: yellow" if col in ["Screen ID", "Visit", "Sample Name"] else ""
+                "background-color: yellow"
+                if col in ["Screen ID", "Visit", "Sample Name"] else ""
                 for col in row.index
             ],
             axis=1
@@ -115,19 +127,20 @@ if not st.session_state.matched_df.empty:
 if st.session_state.unmatched_barcodes:
     st.subheader("❌ Unmatched Barcodes")
     st.code("\n".join(st.session_state.unmatched_barcodes))
-    st.divider()
+
+st.divider()
 
 # -------------------------------
-# Download updated Excel (preserve formatting)
+# Download updated Excel (preserve formatting, formulas, macros)
 # -------------------------------
 if uploaded_file and st.session_state.df is not None:
     new_filename = Path(uploaded_file.name).stem + "_Scanned.xlsx"
 
-    # Load original workbook
-    wb = load_workbook(uploaded_file)
-    ws = wb.active  # assuming your data is in the first sheet
+    # Load original workbook (preserve VBA if any)
+    wb = load_workbook(uploaded_file, keep_vba=True)
+    ws = wb.active  # assume first sheet
 
-    # Find the column index for "Barcode" and "Scan_Status"
+    # Find column indices
     barcode_col = None
     scan_status_col = None
     for idx, cell in enumerate(ws[1], start=1):
@@ -136,18 +149,21 @@ if uploaded_file and st.session_state.df is not None:
         if cell.value == "Scan_Status":
             scan_status_col = idx
 
-    # If Scan_Status does not exist, add it as the next column
+    # Add Scan_Status column if missing and copy header + row styles
     if scan_status_col is None:
         scan_status_col = ws.max_column + 1
         ws.cell(row=1, column=scan_status_col, value="Scan_Status")
+        for row in range(1, ws.max_row + 1):
+            ws.cell(row=row, column=scan_status_col)._style = ws.cell(row=row, column=barcode_col)._style
 
-    # Create a mapping of barcode -> Scan_Status
+    # Update Scan_Status values row by row (preserve all other formatting)
     status_map = dict(zip(st.session_state.df["Barcode"], st.session_state.df["Scan_Status"]))
-
-    # Update Scan_Status column
     for row in range(2, ws.max_row + 1):
-        barcode = str(ws.cell(row=row, column=barcode_col).value)
-        ws.cell(row=row, column=scan_status_col, value=status_map.get(barcode, ""))
+        bc_cell = ws.cell(row=row, column=barcode_col)
+        scan_cell = ws.cell(row=row, column=scan_status_col)
+        scan_cell.value = status_map.get(str(bc_cell.value), "")
+        # Copy style from Barcode column to keep consistent formatting
+        scan_cell._style = bc_cell._style
 
     # Save updated workbook to buffer
     buffer = BytesIO()
