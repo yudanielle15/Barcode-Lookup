@@ -30,15 +30,19 @@ for key, value in defaults.items():
 # Upload Excel
 # -------------------------------
 uploaded_file = st.file_uploader("📁 Upload your sample Excel file", type=["xlsx"])
-if uploaded_file and st.session_state.df is None:
+
+if uploaded_file:
     df = pd.read_excel(uploaded_file)
     if "Barcode" not in df.columns:
         st.error("❌ Excel must contain a 'Barcode' column.")
         st.stop()
+
     df["Scan_Status"] = df.get("Scan_Status", "")
     df["Barcode"] = df["Barcode"].astype(str)
+
     st.session_state.df = df
     st.success("✅ File loaded. Ready to scan.")
+
 st.divider()
 
 # -------------------------------
@@ -80,8 +84,15 @@ if st.button("🚀 Process All Barcodes", use_container_width=True):
         matched = [b for b in barcode_list if b in df_barcodes]
         unmatched = [b for b in barcode_list if b not in df_barcodes]
 
-        st.session_state.df.loc[st.session_state.df["Barcode"].isin(matched), "Scan_Status"] = "Matched"
-        st.session_state.matched_df = st.session_state.df[st.session_state.df["Barcode"].isin(matched)]
+        st.session_state.df.loc[
+            st.session_state.df["Barcode"].isin(matched),
+            "Scan_Status"
+        ] = "Matched"
+
+        st.session_state.matched_df = st.session_state.df[
+            st.session_state.df["Barcode"].isin(matched)
+        ]
+
         st.session_state.unmatched_barcodes = unmatched
         st.session_state.barcode_tags = []
 
@@ -96,7 +107,11 @@ if not st.session_state.matched_df.empty:
     st.subheader("🔹 Matched Samples")
     st.dataframe(
         st.session_state.matched_df.style.apply(
-            lambda row: ["background-color: yellow" if col in ["Screen ID", "Visit", "Sample Name"] else "" for col in row.index],
+            lambda row: [
+                "background-color: yellow"
+                if col in ["Screen ID", "Visit", "Sample Name"] else ""
+                for col in row.index
+            ],
             axis=1
         ),
         use_container_width=True
@@ -114,8 +129,10 @@ st.divider()
 if uploaded_file and st.session_state.df is not None:
     new_filename = Path(uploaded_file.name).stem + "_Scanned.xlsx"
     buffer = BytesIO()
+
     with pd.ExcelWriter(buffer, engine="openpyxl") as writer:
         st.session_state.df.to_excel(writer, index=False, sheet_name="Sheet1")
+
     buffer.seek(0)
 
     st.download_button(
