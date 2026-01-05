@@ -131,13 +131,13 @@ if st.session_state.unmatched_barcodes:
 st.divider()
 
 # -------------------------------
-# Download updated Excel (preserve formatting and formulas)
+# Download updated Excel (preserve formatting, formulas, macros)
 # -------------------------------
 if uploaded_file and st.session_state.df is not None:
     new_filename = Path(uploaded_file.name).stem + "_Scanned.xlsx"
 
-    # Load original workbook
-    wb = load_workbook(uploaded_file)
+    # Load original workbook (preserve VBA if any)
+    wb = load_workbook(uploaded_file, keep_vba=True)
     ws = wb.active  # assume first sheet
 
     # Find column indices
@@ -149,18 +149,21 @@ if uploaded_file and st.session_state.df is not None:
         if cell.value == "Scan_Status":
             scan_status_col = idx
 
-    # Add Scan_Status column if missing and copy header style
+    # Add Scan_Status column if missing and copy header + row styles
     if scan_status_col is None:
         scan_status_col = ws.max_column + 1
         ws.cell(row=1, column=scan_status_col, value="Scan_Status")
         for row in range(1, ws.max_row + 1):
-            ws.cell(row=row, column=scan_status_col)._style = ws.cell(row=row, column=1)._style
+            ws.cell(row=row, column=scan_status_col)._style = ws.cell(row=row, column=barcode_col)._style
 
     # Update Scan_Status values row by row (preserve all other formatting)
     status_map = dict(zip(st.session_state.df["Barcode"], st.session_state.df["Scan_Status"]))
     for row in range(2, ws.max_row + 1):
-        barcode = str(ws.cell(row=row, column=barcode_col).value)
-        ws.cell(row=row, column=scan_status_col, value=status_map.get(barcode, ""))
+        bc_cell = ws.cell(row=row, column=barcode_col)
+        scan_cell = ws.cell(row=row, column=scan_status_col)
+        scan_cell.value = status_map.get(str(bc_cell.value), "")
+        # Copy style from Barcode column to keep consistent formatting
+        scan_cell._style = bc_cell._style
 
     # Save updated workbook to buffer
     buffer = BytesIO()
