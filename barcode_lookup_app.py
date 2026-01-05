@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 from io import BytesIO
 from pathlib import Path
+from openpyxl import load_workbook
 
 # -------------------------------
 # Page config
@@ -129,15 +130,40 @@ if st.session_state.unmatched_barcodes:
 st.divider()
 
 # -------------------------------
-# Download updated Excel
+# Download updated Excel (preserve formatting)
 # -------------------------------
 if uploaded_file and st.session_state.df is not None:
     new_filename = Path(uploaded_file.name).stem + "_Scanned.xlsx"
+
+    # Load original workbook
+    wb = load_workbook(uploaded_file)
+    ws = wb.active  # assuming your data is in the first sheet
+
+    # Find the column index for "Barcode" and "Scan_Status"
+    barcode_col = None
+    scan_status_col = None
+    for idx, cell in enumerate(ws[1], start=1):
+        if cell.value == "Barcode":
+            barcode_col = idx
+        if cell.value == "Scan_Status":
+            scan_status_col = idx
+
+    # If Scan_Status does not exist, add it as the next column
+    if scan_status_col is None:
+        scan_status_col = ws.max_column + 1
+        ws.cell(row=1, column=scan_status_col, value="Scan_Status")
+
+    # Create a mapping of barcode -> Scan_Status
+    status_map = dict(zip(st.session_state.df["Barcode"], st.session_state.df["Scan_Status"]))
+
+    # Update Scan_Status column
+    for row in range(2, ws.max_row + 1):
+        barcode = str(ws.cell(row=row, column=barcode_col).value)
+        ws.cell(row=row, column=scan_status_col, value=status_map.get(barcode, ""))
+
+    # Save updated workbook to buffer
     buffer = BytesIO()
-
-    with pd.ExcelWriter(buffer, engine="openpyxl") as writer:
-        st.session_state.df.to_excel(writer, index=False, sheet_name="Sheet1")
-
+    wb.save(buffer)
     buffer.seek(0)
 
     st.download_button(
