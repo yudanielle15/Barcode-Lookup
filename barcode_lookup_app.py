@@ -2,6 +2,12 @@ import streamlit as st
 import pandas as pd
 from io import BytesIO
 from pathlib import Path
+import time
+
+# -------------------------------
+# TEST MODE SWITCH
+# -------------------------------
+TEST_MODE = True   # ← set to False when using a real barcode scanner
 
 # -------------------------------
 # Page config
@@ -19,7 +25,9 @@ defaults = {
     "barcode_tags": [],
     "matched_df": pd.DataFrame(),
     "unmatched_barcodes": [],
-    "barcode_input": ""
+    "barcode_input": "",
+    "last_input": "",
+    "last_input_time": 0.0
 }
 
 for key, value in defaults.items():
@@ -55,8 +63,33 @@ def add_barcode():
     if barcode and barcode not in st.session_state.barcode_tags:
         st.session_state.barcode_tags.append(barcode)
     st.session_state.barcode_input = ""
+    st.session_state.last_input = ""
+    st.session_state.last_input_time = 0.0
 
-st.text_input("Type or scan barcode", key="barcode_input", on_change=add_barcode)
+st.text_input(
+    "Type or scan barcode",
+    key="barcode_input",
+    on_change=add_barcode
+)
+
+# -------------------------------
+# Auto-add timer (TEST MODE ONLY)
+# -------------------------------
+if TEST_MODE:
+    current_input = st.session_state.barcode_input
+    now = time.time()
+
+    if current_input != st.session_state.last_input:
+        st.session_state.last_input = current_input
+        st.session_state.last_input_time = now
+
+    # Auto-add if input is stable for 0.8 seconds
+    if (
+        current_input
+        and now - st.session_state.last_input_time > 0.8
+    ):
+        add_barcode()
+        st.experimental_rerun()
 
 # -------------------------------
 # Display scanned barcodes (removable)
