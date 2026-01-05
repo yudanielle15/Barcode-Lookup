@@ -1,8 +1,8 @@
 import streamlit as st
 import pandas as pd
-from io import BytesIO
 from pathlib import Path
-from openpyxl import load_workbook
+import xlwings as xw
+from io import BytesIO
 
 # -------------------------------
 # Page config
@@ -41,12 +41,19 @@ if uploaded_file:
     df["Scan_Status"] = df.get("Scan_Status", "")
     df["Barcode"] = df["Barcode"].astype(str)
 
-    # Reset previous session data when a new file is uploaded
+    # Reset previous session data
     st.session_state.df = df
     st.session_state.matched_df = pd.DataFrame()
     st.session_state.unmatched_barcodes = []
     st.session_state.barcode_tags = []
     st.session_state.barcode_input = ""
+
+    # Save temporary local file for xlwings
+    temp_path = Path("temp_uploaded.xlsx")
+    with open(temp_path, "wb") as f:
+        f.write(uploaded_file.getbuffer())
+
+    st.session_state.temp_path = temp_path
 
     st.success("✅ File loaded. Ready to scan.")
 
@@ -66,7 +73,7 @@ def add_barcode():
 st.text_input("Type or scan barcode", key="barcode_input", on_change=add_barcode)
 
 # -------------------------------
-# Display scanned barcodes (removable)
+# Display scanned barcodes
 # -------------------------------
 if st.session_state.barcode_tags:
     selected = st.multiselect(
@@ -131,51 +138,45 @@ if st.session_state.unmatched_barcodes:
 st.divider()
 
 # -------------------------------
-# Download updated Excel (preserve formatting, formulas, macros)
+# Download updated Excel (xlwings)
 # -------------------------------
 if uploaded_file and st.session_state.df is not None:
-    new_filename = Path(uploaded_file.name).stem + "_Scanned.xlsx"
+    if st.button("💾 Save Updated Excel (Preserve Everything)"):
+        wb = xw.Book(st.session_state.temp_path)
+        sheet = wb.sheets[0]
 
-    # Load original workbook (preserve VBA if any)
-    wb = load_workbook(uploaded_file, keep_vba=True)
-    ws = wb.active  # assume first sheet
+        headers = sheet.range("1:1").value
+        barcode_col = headers.index("Barcode") + 1
 
-    # Find column indices
-    barcode_col = None
-    scan_status_col = None
-    for idx, cell in enumerate(ws[1], start=1):
-        if cell.value == "Barcode":
-            barcode_col = idx
-        if cell.value == "Scan_Status":
-            scan_status_col = idx
+        # Add Scan_Status if not present
+        try:
+            scan_col = headers.index("Scan_Status") + 1
+        except ValueError:
+            scan_col = len(headers) + 1
+            sheet.range((1, scan_col)).value = "Scan_Status"
 
-    # Add Scan_Status column if missing and copy header + row styles
-    if scan_status_col is None:
-        scan_status_col = ws.max_column + 1
-        ws.cell(row=1, column=scan_status_col, value="Scan_Status")
-        for row in range(1, ws.max_row + 1):
-            ws.cell(row=row, column=scan_status_col)._style = ws.cell(row=row, column=barcode_col)._style
+        # Map barcode -> Scan_Status
+        status_map = dict(zip(st.session_state.df["Barcode"], st.session_state.df["Scan_Status"]))
 
-    # Update Scan_Status values row by row (preserve all other formatting)
-    status_map = dict(zip(st.session_state.df["Barcode"], st.session_state.df["Scan_Status"]))
-    for row in range(2, ws.max_row + 1):
-        bc_cell = ws.cell(row=row, column=barcode_col)
-        scan_cell = ws.cell(row=row, column=scan_status_col)
-        scan_cell.value = status_map.get(str(bc_cell.value), "")
-        # Copy style from Barcode column to keep consistent formatting
-        scan_cell._style = bc_cell._style
+        # Update values in Excel
+        for r in range(2, sheet.used_range.last_cell.row + 1):
+            bc = str(sheet.range((r, barcode_col)).value)
+            if bc in status_map:
+                sheet.range((r, scan_col)).value = status_map[bc]
 
-    # Save updated workbook to buffer
-    buffer = BytesIO()
-    wb.save(buffer)
-    buffer.seek(0)
+        # Save to buffer
+        out_path = Path("Updated_" + st.session_state.temp_path.name)
+        wb.save(out_path)
+        wb.close()
 
-    st.download_button(
-        "💾 Download Updated Excel",
-        buffer,
-        file_name=new_filename,
-        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        use_container_width=True
-    )
-else:
-    st.info("⬆️ Upload an Excel file to begin.")
+        # Provide download
+        with open(out_path, "rb") as f:
+            buffer = BytesIO(f.read())
+
+        st.download_button(
+            "⬇️ Download Updated Excel",
+            buffer,
+            file_name=out_path.name,
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            use_container_width=True
+        )
