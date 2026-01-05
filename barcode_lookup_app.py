@@ -118,49 +118,16 @@ if st.session_state.unmatched_barcodes:
     st.divider()
 
 # -------------------------------
-# Download updated Excel (preserve formatting)
+# Download updated Excel
 # -------------------------------
 if uploaded_file and st.session_state.df is not None:
     new_filename = Path(uploaded_file.name).stem + "_Scanned.xlsx"
-    
-    # Reset file pointer
-    uploaded_file.seek(0)
-    
-    # Load original workbook to preserve formatting
-    wb = load_workbook(uploaded_file)
-    ws = wb.active  # assuming your data is in the first sheet
-
-    # Map headers
-    header = {cell.value: idx + 1 for idx, cell in enumerate(ws[1])}
-
-    # Add Scan_Status column if missing
-    if "Scan_Status" not in header:
-        scan_status_col = ws.max_column + 1
-        ws.cell(row=1, column=scan_status_col, value="Scan_Status")
-        header["Scan_Status"] = scan_status_col
-
-    # Create mapping of barcode -> Scan_Status
-    status_map = dict(zip(st.session_state.df["Barcode"], st.session_state.df["Scan_Status"]))
-
-    # Update Scan_Status for each row
-    barcode_col = header.get("Barcode")
-    for row in range(2, ws.max_row + 1):
-        barcode = str(ws.cell(row=row, column=barcode_col).value)
-        ws.cell(row=row, column=header["Scan_Status"], value=status_map.get(barcode, ""))
-
-    # Save workbook to buffer
-    buffer = BytesIO()
-    wb.save(buffer)
-    buffer.seek(0)
-
-    # Download button
     st.download_button(
         "💾 Download Updated Excel",
-        data=buffer,
+        st.session_state.df.to_excel(index=False),
         file_name=new_filename,
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         use_container_width=True
     )
 else:
     st.info("⬆️ Upload an Excel file to begin.")
-
