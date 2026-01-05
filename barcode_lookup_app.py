@@ -2,7 +2,6 @@ import streamlit as st
 import pandas as pd
 from io import BytesIO
 from pathlib import Path
-from openpyxl import load_workbook
 
 # -------------------------------
 # Page config
@@ -41,12 +40,11 @@ if uploaded_file:
     df["Scan_Status"] = df.get("Scan_Status", "")
     df["Barcode"] = df["Barcode"].astype(str)
 
-    # Reset previous session data when a new file is uploaded
+    # Reset all previous data when a new file is uploaded
     st.session_state.df = df
     st.session_state.matched_df = pd.DataFrame()
     st.session_state.unmatched_barcodes = []
     st.session_state.barcode_tags = []
-    st.session_state.barcode_input = ""
 
     st.success("✅ File loaded. Ready to scan.")
 
@@ -131,43 +129,15 @@ if st.session_state.unmatched_barcodes:
 st.divider()
 
 # -------------------------------
-# Download updated Excel (preserve formatting, formulas, macros)
+# Download updated Excel
 # -------------------------------
 if uploaded_file and st.session_state.df is not None:
     new_filename = Path(uploaded_file.name).stem + "_Scanned.xlsx"
-
-    # Load original workbook (preserve VBA if any)
-    wb = load_workbook(uploaded_file, keep_vba=True)
-    ws = wb.active  # assume first sheet
-
-    # Find column indices
-    barcode_col = None
-    scan_status_col = None
-    for idx, cell in enumerate(ws[1], start=1):
-        if cell.value == "Barcode":
-            barcode_col = idx
-        if cell.value == "Scan_Status":
-            scan_status_col = idx
-
-    # Add Scan_Status column if missing and copy header + row styles
-    if scan_status_col is None:
-        scan_status_col = ws.max_column + 1
-        ws.cell(row=1, column=scan_status_col, value="Scan_Status")
-        for row in range(1, ws.max_row + 1):
-            ws.cell(row=row, column=scan_status_col)._style = ws.cell(row=row, column=barcode_col)._style
-
-    # Update Scan_Status values row by row (preserve all other formatting)
-    status_map = dict(zip(st.session_state.df["Barcode"], st.session_state.df["Scan_Status"]))
-    for row in range(2, ws.max_row + 1):
-        bc_cell = ws.cell(row=row, column=barcode_col)
-        scan_cell = ws.cell(row=row, column=scan_status_col)
-        scan_cell.value = status_map.get(str(bc_cell.value), "")
-        # Copy style from Barcode column to keep consistent formatting
-        scan_cell._style = bc_cell._style
-
-    # Save updated workbook to buffer
     buffer = BytesIO()
-    wb.save(buffer)
+
+    with pd.ExcelWriter(buffer, engine="openpyxl") as writer:
+        st.session_state.df.to_excel(writer, index=False, sheet_name="Sheet1")
+
     buffer.seek(0)
 
     st.download_button(
