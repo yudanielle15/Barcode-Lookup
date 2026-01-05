@@ -9,6 +9,10 @@ import time
 # -------------------------------
 TEST_MODE = True   # ← set to False when using a real barcode scanner
 
+# Force periodic reruns so the timer can fire (TEST MODE ONLY)
+if TEST_MODE:
+    st.experimental_autorefresh(interval=200, key="scanner_test_refresh")
+
 # -------------------------------
 # Page config
 # -------------------------------
