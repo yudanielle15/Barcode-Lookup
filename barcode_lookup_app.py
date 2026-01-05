@@ -2,16 +2,6 @@ import streamlit as st
 import pandas as pd
 from io import BytesIO
 from pathlib import Path
-import time
-
-# -------------------------------
-# TEST MODE SWITCH
-# -------------------------------
-TEST_MODE = True   # ← set to False when using a real barcode scanner
-
-# Force periodic reruns so the timer can fire (TEST MODE ONLY)
-if TEST_MODE:
-    st.experimental_autorefresh(interval=200, key="scanner_test_refresh")
 
 # -------------------------------
 # Page config
@@ -29,9 +19,7 @@ defaults = {
     "barcode_tags": [],
     "matched_df": pd.DataFrame(),
     "unmatched_barcodes": [],
-    "barcode_input": "",
-    "last_input": "",
-    "last_input_time": 0.0
+    "barcode_input": ""
 }
 
 for key, value in defaults.items():
@@ -52,7 +40,12 @@ if uploaded_file:
     df["Scan_Status"] = df.get("Scan_Status", "")
     df["Barcode"] = df["Barcode"].astype(str)
 
+    # Reset all previous data when a new file is uploaded
     st.session_state.df = df
+    st.session_state.matched_df = pd.DataFrame()
+    st.session_state.unmatched_barcodes = []
+    st.session_state.barcode_tags = []
+
     st.success("✅ File loaded. Ready to scan.")
 
 st.divider()
@@ -67,33 +60,8 @@ def add_barcode():
     if barcode and barcode not in st.session_state.barcode_tags:
         st.session_state.barcode_tags.append(barcode)
     st.session_state.barcode_input = ""
-    st.session_state.last_input = ""
-    st.session_state.last_input_time = 0.0
 
-st.text_input(
-    "Type or scan barcode",
-    key="barcode_input",
-    on_change=add_barcode
-)
-
-# -------------------------------
-# Auto-add timer (TEST MODE ONLY)
-# -------------------------------
-if TEST_MODE:
-    current_input = st.session_state.barcode_input
-    now = time.time()
-
-    if current_input != st.session_state.last_input:
-        st.session_state.last_input = current_input
-        st.session_state.last_input_time = now
-
-    # Auto-add if input is stable for 0.8 seconds
-    if (
-        current_input
-        and now - st.session_state.last_input_time > 0.8
-    ):
-        add_barcode()
-        st.experimental_rerun()
+st.text_input("Type or scan barcode", key="barcode_input", on_change=add_barcode)
 
 # -------------------------------
 # Display scanned barcodes (removable)
