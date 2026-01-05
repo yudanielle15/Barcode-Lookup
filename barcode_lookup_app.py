@@ -20,7 +20,8 @@ defaults = {
     "barcode_tags": [],
     "matched_df": pd.DataFrame(),
     "unmatched_barcodes": [],
-    "barcode_input": ""
+    "barcode_input": "",
+    "uploaded_file_name": None  # Track uploaded file
 }
 
 for key, value in defaults.items():
@@ -46,17 +47,20 @@ def load_file(file):
     df["Scan_Status"] = df.get("Scan_Status", "")
     df["Barcode"] = df["Barcode"].astype(str)
 
-    # Reset session state on new upload
+    # Update DataFrame and reset processed info, but keep scanned barcodes
     st.session_state.df = df
-    st.session_state.barcode_tags = []
     st.session_state.matched_df = pd.DataFrame()
     st.session_state.unmatched_barcodes = []
     st.session_state.barcode_input = ""
+
     st.success("✅ File loaded. Ready to scan.")
     return df
 
 if uploaded_file:
-    load_file(uploaded_file)
+    # Only reset session state if the file is different
+    if st.session_state.uploaded_file_name != uploaded_file.name:
+        load_file(uploaded_file)
+        st.session_state.uploaded_file_name = uploaded_file.name
 
 st.divider()
 
