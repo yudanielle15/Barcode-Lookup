@@ -30,7 +30,15 @@ for key, value in defaults.items():
 # Upload Excel
 # -------------------------------
 uploaded_file = st.file_uploader("📁 Upload your sample Excel file", type=["xlsx"])
-if uploaded_file and st.session_state.df is None:
+if uploaded_file:
+    # Reset all session state on new upload
+    st.session_state.df = None
+    st.session_state.matched_df = pd.DataFrame()
+    st.session_state.unmatched_barcodes = []
+    st.session_state.barcode_tags = []
+    st.session_state.barcode_input = ""
+
+    # Load new Excel
     df = pd.read_excel(uploaded_file)
     if "Barcode" not in df.columns:
         st.error("❌ Excel must contain a 'Barcode' column.")
@@ -39,6 +47,7 @@ if uploaded_file and st.session_state.df is None:
     df["Barcode"] = df["Barcode"].astype(str)
     st.session_state.df = df
     st.success("✅ File loaded. Ready to scan.")
+
 st.divider()
 
 # -------------------------------
@@ -75,10 +84,10 @@ if st.button("🚀 Process All Barcodes", use_container_width=True):
         st.warning("⚠️ Upload an Excel file first.")
     else:
         barcode_list = st.session_state.barcode_tags
-        df_barcodes = st.session_state.df["Barcode"].tolist()
+        df_barcodes_set = set(st.session_state.df["Barcode"])  # faster lookup
 
-        matched = [b for b in barcode_list if b in df_barcodes]
-        unmatched = [b for b in barcode_list if b not in df_barcodes]
+        matched = [b for b in barcode_list if b in df_barcodes_set]
+        unmatched = [b for b in barcode_list if b not in df_barcodes_set]
 
         st.session_state.df.loc[st.session_state.df["Barcode"].isin(matched), "Scan_Status"] = "Matched"
         st.session_state.matched_df = st.session_state.df[st.session_state.df["Barcode"].isin(matched)]
