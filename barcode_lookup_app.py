@@ -122,7 +122,11 @@ if st.session_state.unmatched_barcodes:
 # -------------------------------
 if uploaded_file and st.session_state.df is not None:
     new_filename = Path(uploaded_file.name).stem + "_Scanned.xlsx"
-    uploaded_file.seek(0)  # Reset file pointer
+    
+    # Reset file pointer
+    uploaded_file.seek(0)
+    
+    # Load original workbook to preserve formatting
     wb = load_workbook(uploaded_file)
     ws = wb.active  # assuming your data is in the first sheet
 
@@ -135,20 +139,21 @@ if uploaded_file and st.session_state.df is not None:
         ws.cell(row=1, column=scan_status_col, value="Scan_Status")
         header["Scan_Status"] = scan_status_col
 
-    # Create a mapping of barcode -> Scan_Status
+    # Create mapping of barcode -> Scan_Status
     status_map = dict(zip(st.session_state.df["Barcode"], st.session_state.df["Scan_Status"]))
 
-    # Update Scan_Status column for each row
+    # Update Scan_Status for each row
     barcode_col = header.get("Barcode")
     for row in range(2, ws.max_row + 1):
         barcode = str(ws.cell(row=row, column=barcode_col).value)
         ws.cell(row=row, column=header["Scan_Status"], value=status_map.get(barcode, ""))
 
-    # Save to BytesIO buffer
+    # Save workbook to buffer
     buffer = BytesIO()
     wb.save(buffer)
     buffer.seek(0)
 
+    # Download button
     st.download_button(
         "💾 Download Updated Excel",
         data=buffer,
@@ -158,3 +163,4 @@ if uploaded_file and st.session_state.df is not None:
     )
 else:
     st.info("⬆️ Upload an Excel file to begin.")
+
