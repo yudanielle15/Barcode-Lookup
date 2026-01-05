@@ -27,13 +27,12 @@ for key, value in defaults.items():
         st.session_state[key] = value
 
 # -------------------------------
-# File upload
+# Upload Excel
 # -------------------------------
 uploaded_file = st.file_uploader("📁 Upload your sample Excel file", type=["xlsx"])
 
 if uploaded_file:
     try:
-        # Reset all session state when a new file is uploaded
         df = pd.read_excel(uploaded_file)
         if "Barcode" not in df.columns:
             st.error("❌ Excel must contain a 'Barcode' column.")
@@ -42,13 +41,12 @@ if uploaded_file:
             df["Scan_Status"] = ""
         df["Barcode"] = df["Barcode"].astype(str)
 
+        # Reset previous session data
         st.session_state.df = df
         st.session_state.barcode_tags = []
         st.session_state.matched_df = pd.DataFrame()
         st.session_state.unmatched_barcodes = []
         st.session_state.barcode_input = ""
-
-        # Save uploaded file temporarily for openpyxl editing
         st.session_state.temp_file = uploaded_file
 
         st.success("✅ File loaded. Ready to scan.")
@@ -72,7 +70,7 @@ def add_barcode():
 st.text_input("Type or scan barcode", key="barcode_input", on_change=add_barcode)
 
 # -------------------------------
-# Display scanned barcodes (removable)
+# Display scanned barcodes (removable bubbles)
 # -------------------------------
 if st.session_state.barcode_tags:
     selected = st.multiselect(
@@ -107,7 +105,7 @@ if st.button("🚀 Process All Barcodes", use_container_width=True):
         ]
 
         st.session_state.unmatched_barcodes = unmatched
-        st.session_state.barcode_tags = []
+        st.session_state.barcode_tags = []  # Clear bubbles after processing
 
         st.success(f"✅ {len(matched)} matched | ❌ {len(unmatched)} unmatched")
 
@@ -142,7 +140,6 @@ st.divider()
 if uploaded_file and st.session_state.df is not None:
     st.subheader("💾 Download Updated Excel")
 
-    # Load workbook with openpyxl
     wb = load_workbook(st.session_state.temp_file)
     ws = wb.active
 
@@ -157,7 +154,7 @@ if uploaded_file and st.session_state.df is not None:
 
     barcode_col = headers.index("Barcode") + 1
 
-    # Update Scan_Status column
+    # Update Scan_Status values
     status_map = dict(zip(st.session_state.df["Barcode"], st.session_state.df["Scan_Status"]))
     for r in range(2, ws.max_row + 1):
         bc = str(ws.cell(row=r, column=barcode_col).value)
