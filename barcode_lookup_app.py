@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 from io import BytesIO
 from pathlib import Path
+from openpyxl import load_workbook
 
 # -------------------------------
 # Page config
@@ -127,17 +128,44 @@ if st.session_state.unmatched_barcodes:
 st.divider()
 
 # -------------------------------
-# Download updated Excel
+# Download updated Excel (preserve original formatting)
 # -------------------------------
-if st.session_state.df is not None:
-    new_filename = (Path(uploaded_file.name).stem if uploaded_file else "Updated_File") + "_Scanned.xlsx"
+if uploaded_file and st.session_state.df is not None:
+    # Load original workbook to preserve formatting
+    wb = load_workbook(uploaded_file)
+    ws = wb.active  # assume first sheet; adjust if needed
+
+    # Mapping Barcode -> Scan_Status
+    status_map = st.session_state.df.set_index("Barcode")["Scan_Status"].to_dict()
+
+    # Find column indices
+    barcode_col = None
+    scan_status_col = None
+    for idx, cell in enumerate(ws[1], 1):
+        if cell.value == "Barcode":
+            barcode_col = idx
+        elif cell.value == "Scan_Status":
+            scan_status_col = idx
+
+    # If Scan_Status column doesn't exist, add it at the end
+    if scan_status_col is None:
+        scan_status_col = ws.max_column + 1
+        ws.cell(row=1, column=scan_status_col, value="Scan_Status")
+
+    # Update Scan_Status based on barcode matches (preserve all formatting)
+    for row in ws.iter_rows(min_row=2):
+        barcode = str(row[barcode_col - 1].value)
+        if barcode in status_map:
+            row[scan_status_col - 1].value = status_map[barcode]
+
+    # Save workbook to BytesIO buffer
     buffer = BytesIO()
-    with pd.ExcelWriter(buffer, engine="openpyxl") as writer:
-        st.session_state.df.to_excel(writer, index=False, sheet_name="Sheet1")
+    wb.save(buffer)
     buffer.seek(0)
 
+    new_filename = Path(uploaded_file.name).stem + "_Scanned.xlsx"
     st.download_button(
-        "💾 Download Updated Excel",
+        "💾 Download Updated Excel (Formatting Preserved)",
         buffer,
         file_name=new_filename,
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
